@@ -803,20 +803,13 @@ function areasPresentes(){
   baseDatos().forEach(function(o){ if(o.area && !s[o.area]){ s[o.area]=1; out.push(o.area); } });
   return out.sort();
 }
-// Áreas presentes en los registros de ATS / Charla de 5 min.
-function areasPresentesAts(){
-  var s={}, out=[];
-  APP.ats.forEach(function(o){ if(o.area && !s[o.area]){ s[o.area]=1; out.push(o.area); } });
-  return out.sort();
-}
-// Rellena el selector de área del SSOMA con las áreas que existen en los datos
-// (observaciones + registros de ATS/Charla, para que el filtro sirva en ambas pestañas).
+// Rellena el selector de área del SSOMA con las áreas que existen en las observaciones
+// (comportamiento original del panel; la pestaña ATS no altera este filtro).
 function poblarAreaSelect(){
   if(!APP.user || APP.user.area!=="*") return;
   var sel=document.getElementById("areaSelect"); if(!sel) return;
   var prev=sel.value||"__ALL__", set={}, areas=[];
   areasPresentes().forEach(function(a){ if(!set[a]){ set[a]=1; areas.push(a); } });
-  areasPresentesAts().forEach(function(a){ if(!set[a]){ set[a]=1; areas.push(a); } });
   areas.sort();
   sel.innerHTML='<option value="__ALL__">▦ Todas las áreas</option>'+
     areas.map(function(a){return '<option value="'+esc(a)+'">'+esc(a)+'</option>';}).join("");
