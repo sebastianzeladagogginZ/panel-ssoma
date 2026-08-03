@@ -1,0 +1,1509 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel SSOMA · Levantamiento de Inspecciones · ON Infraestructura</title>
+<style>
+  :root{
+    --brand:#0c4a6e; --brand2:#0284c7; --brand3:#0ea5e9;
+    --ink:#0f172a; --muted:#64748b; --soft:#94a3b8; --line:#e7edf3;
+    --panel:#ffffff; --bg:#eef3f8; --bg2:#f8fafc;
+    --ok:#16a34a; --okbg:#dcfce7; --warn:#d97706; --warnbg:#fef3c7;
+    --bad:#dc2626; --badbg:#fee2e2; --na:#64748b; --nabg:#eef2f6;
+    --info:#0284c7; --infobg:#e0f2fe; --purple:#7c3aed; --purplebg:#ede9fe;
+    --shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px rgba(15,23,42,.06);
+    --shadow-lg:0 12px 40px rgba(15,23,42,.16);
+    --r:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45}
+  button{font-family:inherit}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:20px;border:3px solid transparent;background-clip:content-box}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* ============ LOGIN ============ */
+  #login{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;
+    background:radial-gradient(1200px 600px at 15% -10%,#0e5a85 0%,transparent 60%),
+               radial-gradient(900px 500px at 110% 10%,#0ea5e9 0%,transparent 55%),
+               linear-gradient(160deg,#072f47,#0c4a6e 55%,#083349)}
+  .login-card{width:100%;max-width:420px;background:rgba(255,255,255,.97);border-radius:22px;
+    box-shadow:var(--shadow-lg);padding:34px 30px 28px;backdrop-filter:blur(8px)}
+  .brandmark{display:flex;align-items:center;gap:11px;margin-bottom:22px}
+  .brandmark .logo{width:42px;height:42px;border-radius:12px;flex:none;
+    background:linear-gradient(135deg,var(--brand),var(--brand3));display:grid;place-items:center;
+    color:#fff;font-weight:800;font-size:18px;box-shadow:0 6px 16px rgba(2,132,199,.4)}
+  .brandmark b{font-size:15px;display:block;letter-spacing:.2px}
+  .brandmark span{font-size:11px;color:var(--muted)}
+  .login-card h1{font-size:21px;margin:4px 0 3px;letter-spacing:-.3px}
+  .login-card .lead{color:var(--muted);font-size:13px;margin:0 0 22px}
+  .lfield{margin:13px 0}
+  .lfield label{display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:6px}
+  .lfield input,.lfield select{width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;
+    font-size:15px;background:#fff;color:var(--ink);transition:border-color .15s,box-shadow .15s}
+  .lfield input:focus,.lfield select:focus{outline:none;border-color:var(--brand2);box-shadow:0 0 0 4px rgba(2,132,199,.12)}
+  .pwd-wrap{position:relative}
+  .pwd-wrap input{padding-right:46px}
+  .pwd-eye{position:absolute;right:7px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;padding:6px;display:flex;border-radius:8px}
+  .pwd-eye:hover{color:var(--brand2);background:#f1f5f9}
+  .pwd-eye svg{width:20px;height:20px}
+  .btn-primary{width:100%;margin-top:18px;padding:14px;border:none;border-radius:12px;cursor:pointer;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-size:15px;font-weight:700;
+    box-shadow:0 8px 20px rgba(12,74,110,.32);transition:transform .12s,box-shadow .12s}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(12,74,110,.42)}
+  .btn-primary:active{transform:translateY(0)}
+  .login-err{color:var(--bad);font-size:13px;font-weight:600;margin-top:12px;min-height:18px;text-align:center}
+  .demo-hint{margin-top:20px;background:var(--infobg);border:1px solid #bae6fd;border-radius:12px;
+    padding:11px 14px;font-size:12px;color:#075985}
+  .demo-hint b{color:#0c4a6e}
+  .demo-hint details{margin-top:6px}
+  .demo-hint summary{cursor:pointer;font-weight:700;color:var(--brand2)}
+  .demo-hint table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11.5px}
+  .demo-hint td{padding:3px 4px;border-top:1px solid #bae6fd}
+  .demo-hint .pick{cursor:pointer;color:var(--brand2);font-weight:700;text-decoration:underline}
+
+  /* ============ APP SHELL ============ */
+  #app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+  #app[hidden]{display:none}
+  aside{position:sticky;top:0;height:100vh;background:linear-gradient(185deg,#0b4368,#072f47);
+    color:#cfe6f5;display:flex;flex-direction:column;padding:18px 14px;gap:4px}
+  .side-brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:10px}
+  .side-brand .logo{width:38px;height:38px;border-radius:11px;flex:none;
+    background:linear-gradient(135deg,#0ea5e9,#38bdf8);display:grid;place-items:center;color:#fff;font-weight:800;font-size:16px}
+  .side-brand b{color:#fff;font-size:13.5px;display:block;line-height:1.2}
+  .side-brand span{font-size:10.5px;color:#9ec7e0}
+  .nav-item{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:11px;cursor:pointer;
+    color:#bcd9ec;font-weight:600;font-size:13.5px;transition:background .14s,color .14s;border:none;background:none;width:100%;text-align:left}
+  .nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+  .nav-item.active{background:rgba(255,255,255,.14);color:#fff;box-shadow:inset 3px 0 0 #38bdf8}
+  .nav-item svg{width:18px;height:18px;flex:none}
+  .nav-sep{flex:1}
+  .epp-btn{display:flex;align-items:center;gap:10px;justify-content:center;padding:12px;border-radius:12px;cursor:pointer;
+    background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;font-weight:700;font-size:13px;border:none;
+    box-shadow:0 8px 18px rgba(22,163,74,.35);transition:transform .12s}
+  .epp-btn:hover{transform:translateY(-1px)}
+  .epp-btn svg{width:18px;height:18px}
+  .side-user{margin-top:10px;padding:11px 10px;background:rgba(255,255,255,.07);border-radius:12px;display:flex;align-items:center;gap:10px}
+  .side-user .av{width:34px;height:34px;border-radius:50%;flex:none;background:linear-gradient(135deg,#38bdf8,#0ea5e9);
+    display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
+  .side-user b{color:#fff;font-size:12.5px;display:block;line-height:1.15;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .side-user span{font-size:10.5px;color:#9ec7e0}
+  .logout{margin-left:auto;background:none;border:none;color:#9ec7e0;cursor:pointer;padding:4px}
+  .logout:hover{color:#fff}
+
+  main{min-width:0;padding:0 0 60px}
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);padding:16px 30px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .topbar .title h1{font-size:19px;margin:0;letter-spacing:-.3px}
+  .topbar .title p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+  .topbar .spacer{flex:1}
+  .area-pill{display:inline-flex;align-items:center;gap:8px;background:var(--infobg);color:#075985;
+    border:1px solid #bae6fd;border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:700}
+  .area-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--brand2)}
+  .topbar-epp{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#16a34a,#22c55e);
+    color:#fff;border:none;border-radius:11px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;
+    box-shadow:0 6px 16px rgba(22,163,74,.32);transition:transform .12s}
+  .topbar-epp:hover{transform:translateY(-1px)}
+  .topbar-epp svg{width:17px;height:17px}
+  .area-select{padding:8px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13px;font-weight:600;background:#fff;color:var(--ink)}
+
+  .content{padding:24px 30px;max-width:1320px}
+  .view{display:none}
+  .view.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* ===== KPI cards ===== */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:14px;margin-bottom:22px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .kpi .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;margin-bottom:12px}
+  .kpi .ic svg{width:20px;height:20px}
+  .kpi .v{font-size:30px;font-weight:800;letter-spacing:-1px;line-height:1}
+  .kpi .l{font-size:12px;color:var(--muted);margin-top:5px;font-weight:600}
+  .kpi .trend{position:absolute;top:16px;right:16px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px}
+  .kpi.clk{cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .12s}
+  .kpi.clk:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:#bae6fd}
+  .kpi.clk:active{transform:translateY(-1px)}
+  .kpi.clk::after{content:"→ ver";position:absolute;bottom:12px;right:14px;font-size:10px;font-weight:700;color:var(--brand2);opacity:0;transition:opacity .12s}
+  .kpi.clk:hover::after{opacity:1}
+
+  .grid{display:grid;gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+  .card .ch{display:flex;align-items:center;gap:10px;padding:16px 20px 0}
+  .card .ch h3{margin:0;font-size:14.5px;font-weight:700}
+  .card .ch .sub{font-size:12px;color:var(--muted);margin-left:auto;font-weight:600}
+  .card .cb{padding:14px 20px 20px}
+  .row2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+  .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:1040px){.row2,.row3{grid-template-columns:1fr}}
+
+  /* ===== legend ===== */
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
+  .legend i{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#475569;font-weight:600}
+  .legend .sw{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  /* ===== filters & table ===== */
+  .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+  .filters input[type=search],.filters select{padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13px;background:#fff;color:var(--ink)}
+  .filters input[type=search]{min-width:230px}
+  .filters input:focus,.filters select:focus{outline:none;border-color:var(--brand2)}
+  .chip-f{padding:8px 13px;border:1.5px solid var(--line);background:#fff;border-radius:999px;font-size:12.5px;font-weight:700;color:#475569;cursor:pointer}
+  .chip-f.on{border-color:var(--brand2);background:var(--infobg);color:#075985}
+  .count-tag{margin-left:auto;font-size:12.5px;color:var(--muted);font-weight:600}
+
+  table.data{width:100%;border-collapse:collapse;font-size:13px}
+  table.data th{text-align:left;padding:11px 14px;background:var(--bg2);color:#475569;font-weight:700;font-size:11.5px;
+    text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--line);position:sticky;top:0}
+  table.data td{padding:12px 14px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+  table.data tr:hover td{background:#f8fbfe}
+  table.data tr{cursor:pointer}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap}
+  .pill.warn{background:var(--warnbg);color:#92400e}
+  .pill.bad{background:var(--badbg);color:#991b1b}
+  .pill.ok{background:var(--okbg);color:#166534}
+  .pill.info{background:var(--infobg);color:#075985}
+  .pill.na{background:var(--nabg);color:#475569}
+  .pill.purple{background:var(--purplebg);color:#5b21b6}
+  .dot-s{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .lev-bar{height:7px;border-radius:999px;background:#eef2f6;overflow:hidden;min-width:70px}
+  .lev-bar i{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:999px}
+  .tbl-wrap{overflow:auto;border-radius:12px;border:1px solid var(--line)}
+
+  .empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+  .empty-state .em{font-size:40px;margin-bottom:8px}
+
+  /* ===== drawer ===== */
+  .scrim{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:80;display:none;justify-content:flex-end}
+  .scrim.open{display:flex;animation:fade .2s}
+  .drawer{width:480px;max-width:94vw;background:#fff;height:100vh;overflow:auto;box-shadow:var(--shadow-lg);animation:slidein .26s cubic-bezier(.2,.8,.2,1)}
+  @keyframes slidein{from{transform:translateX(40px);opacity:.6}to{transform:none;opacity:1}}
+  .drawer .dh{padding:22px 24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:2}
+  .drawer .dh .x{float:right;border:none;background:#f1f5f9;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;color:#475569}
+  .drawer .db{padding:20px 24px 40px}
+  .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:6px 0 18px}
+  .meta-grid .m label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:3px}
+  .meta-grid .m b{font-size:14px;font-weight:600}
+  .ev-box{border:1.5px dashed var(--line);border-radius:14px;padding:16px;text-align:center;background:var(--bg2);margin:8px 0 16px}
+  .ev-box img{max-width:100%;border-radius:10px;margin-top:8px}
+  .ev-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .ev-thumbs .t{width:86px;height:86px;border-radius:10px;background:linear-gradient(135deg,#e0f2fe,#dcfce7);
+    display:grid;place-items:center;color:#0369a1;font-size:11px;font-weight:700;border:1px solid var(--line);text-align:center;padding:6px}
+  .sect{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--soft);margin:20px 0 8px}
+  .act-btns{display:grid;gap:9px;margin-top:8px}
+  .act{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:11px;font-weight:700;font-size:13.5px;cursor:pointer;border:1.5px solid var(--line);background:#fff;color:#334155;transition:transform .1s}
+  .act:hover{transform:translateY(-1px)}
+  .act.green{background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;border:none}
+  .act.blue{background:linear-gradient(135deg,#0284c7,#0ea5e9);color:#fff;border:none}
+  .act.ghost-bad{border-color:#fecaca;color:#b91c1c;background:#fef2f2}
+  .timeline{margin-top:8px;border-left:2px solid var(--line);padding-left:16px}
+  .timeline .ev{position:relative;padding:0 0 16px}
+  .timeline .ev:before{content:"";position:absolute;left:-21px;top:3px;width:9px;height:9px;border-radius:50%;background:var(--brand2);border:2px solid #fff;box-shadow:0 0 0 2px var(--line)}
+  .timeline .ev b{font-size:13px}
+  .timeline .ev span{font-size:11.5px;color:var(--muted);display:block}
+  /* mensajería jefe ↔ SSOMA */
+  .msg{border-radius:10px;padding:10px 12px;font-size:12.5px;margin:6px 0;white-space:pre-wrap;line-height:1.4}
+  .msg.jefe{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a}
+  .msg.ssoma{background:#f5f3ff;border:1px solid #ddd6fe;color:#5b21b6}
+  .msg b{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;opacity:.8}
+  .msg-input{width:100%;min-height:64px;border:1.5px solid var(--line);border-radius:10px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;color:var(--ink)}
+  .msg-input:focus{outline:none;border-color:var(--brand2);box-shadow:0 0 0 3px rgba(2,132,199,.1)}
+  .msg-empty{color:#94a3b8;font-size:12.5px;margin:4px 0}
+  .file-pick{display:flex;align-items:center;gap:9px;border:1.5px dashed var(--brand2);color:var(--brand);background:#f0f9ff;border-radius:10px;padding:13px 14px;font-size:13px;font-weight:700;cursor:pointer;transition:background .12s}
+  .file-pick:hover{background:#e0f2fe}
+
+  /* ===== evidencias folders ===== */
+  .folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .folder{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);cursor:pointer;transition:transform .12s,box-shadow .12s}
+  .folder:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+  .folder .fic{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#fde68a,#fbbf24);display:grid;place-items:center;margin-bottom:12px}
+  .folder .fic svg{width:24px;height:24px;color:#92400e}
+  .folder b{font-size:14px;display:block}
+  .folder span{font-size:12px;color:var(--muted)}
+  .folder .fcount{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+
+  .banner-demo{background:linear-gradient(90deg,#fffbeb,#fef9c3);border:1px solid #fde68a;color:#854d0e;
+    border-radius:12px;padding:10px 16px;font-size:12.5px;font-weight:600;margin-bottom:18px;display:flex;align-items:center;gap:10px}
+  .banner-demo b{color:#713f12}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:#0f172a;color:#fff;
+    padding:13px 22px;border-radius:12px;font-size:13.5px;font-weight:600;z-index:200;box-shadow:var(--shadow-lg);transition:transform .3s cubic-bezier(.2,.8,.2,1);display:flex;align-items:center;gap:10px}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.ok{background:#166534}.toast.bad{background:#991b1b}
+
+  @media(max-width:860px){
+    #app{grid-template-columns:1fr}
+    aside{position:fixed;z-index:100;left:-260px;width:248px;transition:left .25s}
+    aside.open{left:0}
+    .content,.topbar{padding-left:18px;padding-right:18px}
+    .menu-toggle{display:inline-flex!important}
+  }
+  .menu-toggle{display:none;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="login">
+  <div class="login-card">
+    <div class="brandmark">
+      <div class="logo">ON</div>
+      <div><b>ON Infraestructura</b><span>Sistema SSOMA · SEG-F-010</span></div>
+    </div>
+    <h1>Panel de Levantamiento</h1>
+    <p class="lead">Seguimiento de observaciones de inspección por área. Selecciona tu área e ingresa el DNI del encargado.</p>
+    <form id="loginForm" autocomplete="off">
+      <div class="lfield">
+        <label>Usuario · Área</label>
+        <select id="larea" required>
+          <option value="">— Selecciona tu área —</option>
+        </select>
+      </div>
+      <div class="lfield">
+        <label>Contraseña · DNI del encargado</label>
+        <div class="pwd-wrap">
+          <input id="lpass" type="password" placeholder="DNI del jefe de área" inputmode="numeric" maxlength="12" autocomplete="off" required>
+          <button type="button" class="pwd-eye" id="pwdEye" title="Mostrar/ocultar DNI" aria-label="Mostrar u ocultar DNI">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <button class="btn-primary" type="submit">Ingresar al panel</button>
+      <div class="login-err" id="lerr"></div>
+    </form>
+    <div class="demo-hint" id="demoHint">
+      <b>Modo demostración.</b> Usuarios de prueba (uno por área). Haz clic en un área para autocompletar.
+      <details>
+        <summary>Ver usuarios de prueba</summary>
+        <table id="demoTable"></table>
+      </details>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app" hidden>
+  <aside id="aside">
+    <div class="side-brand" id="brandHome" title="Ir al inicio" style="cursor:pointer">
+      <div class="logo">ON</div>
+      <div><b>Panel SSOMA</b><span>Levantamiento 2026</span></div>
+    </div>
+    <button class="nav-item active" data-view="resumen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      Resumen
+    </button>
+    <button class="nav-item" data-view="observaciones">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Observaciones
+    </button>
+    <button class="nav-item" data-view="evidencias">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      Evidencias
+    </button>
+    <button class="nav-item" data-view="analisis">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 5-7"/></svg>
+      Análisis
+    </button>
+    <button class="nav-item" data-view="ats">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2h6a2 2 0 0 1 2 2v0h1a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg>
+      ATS · Charla 5 min
+    </button>
+    <div class="nav-sep"></div>
+    <button class="epp-btn" id="eppSide">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      Formato entrega EPP
+    </button>
+    <div class="side-user">
+      <div class="av" id="uAv">··</div>
+      <div style="min-width:0"><b id="uName">—</b><span id="uRole">—</span></div>
+      <button class="logout" id="logoutBtn" title="Cerrar sesión">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <button class="menu-toggle" id="menuToggle"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <div class="title">
+        <h1 id="viewTitle">Resumen</h1>
+        <p id="viewSub">Estado general del levantamiento de observaciones</p>
+      </div>
+      <div class="spacer"></div>
+      <select class="area-select" id="areaSelect" style="display:none"></select>
+      <span class="area-pill"><span class="dot"></span><span id="areaLabel">—</span></span>
+      <button class="topbar-epp" id="eppTop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        Formato EPP
+      </button>
+    </div>
+
+    <div class="content">
+      <div id="demoBanner"></div>
+
+      <!-- ===== RESUMEN ===== -->
+      <section class="view active" id="view-resumen">
+        <div class="kpis" id="kpis"></div>
+        <div class="row2" style="margin-bottom:16px">
+          <div class="card">
+            <div class="ch"><h3>Tendencia de observaciones</h3><span class="sub" id="trendSub"></span></div>
+            <div class="cb" id="trendChart"></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Distribución por estado</h3></div>
+            <div class="cb" id="estadoChart"></div>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="card">
+            <div class="ch"><h3>Observaciones por sección</h3></div>
+            <div class="cb" id="seccionChart"></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Avance de levantamiento</h3><span class="sub" id="avanceSub"></span></div>
+            <div class="cb" id="avanceChart"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== OBSERVACIONES ===== -->
+      <section class="view" id="view-observaciones">
+        <div class="filters">
+          <input type="search" id="search" placeholder="Buscar ítem, recurso, cuadrilla…">
+          <select id="fEstado"><option value="">Todos los estados</option><option>Requiere cambio</option><option>No tiene</option></select>
+          <select id="fSeccion"><option value="">Todas las secciones</option></select>
+          <select id="fLev"><option value="">Todo el levantamiento</option><option value="abiertas">Abiertas (pend. + proceso)</option><option value="pendiente">Pendiente</option><option value="en_proceso">En revisión</option><option value="levantado">Levantado</option><option value="rechazado">Rechazado SOMA</option></select>
+          <span class="count-tag" id="obsCount"></span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="data">
+            <thead><tr><th>Fecha</th><th>Área</th><th>Cuadrilla</th><th>Sección</th><th>Ítem observado</th><th>Recurso / Técnico</th><th>Estado</th><th>Levantamiento</th></tr></thead>
+            <tbody id="obsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== EVIDENCIAS ===== -->
+      <section class="view" id="view-evidencias">
+        <p style="color:var(--muted);font-size:13px;margin:0 0 16px;max-width:680px">
+          Las evidencias de levantamiento se organizan automáticamente en <b>carpetas fechadas</b> dentro de Google Drive
+          (<code>Evidencias Levantamiento / AAAA-MM-DD / Área</code>). Si una evidencia es rechazada por SOMA vía Gmail, se elimina sola.
+        </p>
+        <div class="folders" id="folders"></div>
+      </section>
+
+      <!-- ===== ANALISIS ===== -->
+      <section class="view" id="view-analisis">
+        <div class="row2" style="margin-bottom:16px">
+          <div class="card">
+            <div class="ch"><h3>Ítems más observados</h3><span class="sub">Top 10</span></div>
+            <div class="cb" id="topItems"></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Observaciones por cuadrilla</h3></div>
+            <div class="cb" id="cuadChart"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch"><h3>Mapa de calor · Sección × Estado</h3><span class="sub">Concentración de hallazgos</span></div>
+          <div class="cb" id="heatmap"></div>
+        </div>
+        <div class="row3" id="areaCompare" style="display:none"></div>
+      </section>
+
+      <!-- ===== ATS · CHARLA DE 5 MIN ===== -->
+      <section class="view" id="view-ats">
+        <p style="color:var(--muted);font-size:13px;margin:0 0 16px;max-width:720px">
+          Llenado de <b>ATS</b> (Análisis de Trabajo Seguro) y <b>Charlas de 5 minutos</b> registrados por las cuadrillas
+          desde la app de campo. Cada registro se escanea y sube a Google Drive
+          (<code>Mes › Día › Área › División › Cuadrilla › Cliente-Circuito › ATS | Charla</code>).
+        </p>
+        <div class="kpis" id="kpisAts"></div>
+        <div class="row2" style="margin-bottom:16px">
+          <div class="card">
+            <div class="ch"><h3>Tendencia de llenado</h3><span class="sub" id="atsTrendSub"></span></div>
+            <div class="cb" id="atsTrendChart"></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>ATS vs Charla de 5 min</h3></div>
+            <div class="cb" id="atsTipoChart"></div>
+          </div>
+        </div>
+        <div class="row2" style="margin-bottom:16px">
+          <div class="card">
+            <div class="ch"><h3>Registros por cuadrilla</h3><span class="sub">Top 12</span></div>
+            <div class="cb" id="atsCuadChart"></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Cumplimiento por cuadrilla</h3><span class="sub">ATS + Charla del día</span></div>
+            <div class="cb" id="atsCumpl"></div>
+          </div>
+        </div>
+        <div class="row3" id="atsAreaCompare" style="display:none;margin-bottom:16px"></div>
+        <div class="card">
+          <div class="ch"><h3>Registros</h3><span class="sub" id="atsCount"></span></div>
+          <div class="cb">
+            <div class="filters" style="margin-bottom:14px">
+              <input type="search" id="searchAts" placeholder="Buscar cliente, circuito, cuadrilla…">
+              <select id="fTipoAts"><option value="">ATS + Charlas</option><option value="ATS">Solo ATS</option><option value="Charla-5min">Solo Charlas 5 min</option></select>
+              <select id="fPeriodoAts"><option value="7">Últimos 7 días</option><option value="30" selected>Últimos 30 días</option><option value="todo">Todo</option></select>
+            </div>
+            <div class="tbl-wrap">
+              <table class="data">
+                <thead><tr><th>Fecha</th><th>Tipo</th><th>Cliente</th><th>Circuito</th><th>Cuadrilla</th><th id="atsThArea">Área</th><th>Docs.</th></tr></thead>
+                <tbody id="atsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- drawer -->
+<div class="scrim" id="scrim"><div class="drawer" id="drawer"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN  — ajusta estas 3 líneas en producción
+   ============================================================ */
+var CONFIG = {
+  // URL del Web App de Google Apps Script (doGet) que devuelve las observaciones.
+  // Déjala vacía para usar el MODO DEMO con datos de ejemplo.
+  ENDPOINT_URL: "https://script.google.com/macros/s/AKfycbzQiTVmDrL-R7wK3WjKEPH_HnnwQAbP_Wxcl_EyqsA0Qx2IxbqIOP54IEPYgx-VcPb62A/exec",
+  // Archivo / enlace del formato oficial de entrega de EPP (reemplaza con tu PDF o URL de Drive).
+  FORMATO_EPP_URL: "./Formato_Entrega_EPP.pdf",
+  // Carpeta raíz de evidencias en Google Drive (para el botón "abrir en Drive"). Opcional.
+  DRIVE_EVIDENCIAS_URL: "",
+  // URL del Web App de la app de campo (ATS y Charla de 5 min). El panel le pide los registros
+  // de llenado con doGet?action=registros (leídos de la hoja "Registros"). YA PRE-CABLEADA con el
+  // endpoint desplegado de la app ATS. Mientras el backend no tenga LOG_SHEET_ID configurado y
+  // no se haya re-desplegado con el action=registros, devuelve vacío y el panel usa datos DEMO
+  // automáticamente. En cuanto ambos pasos estén hechos en Google, la pestaña pasa a datos reales
+  // sin tocar el panel. (Déjala en "" si prefieres forzar modo demo.)
+  ATS_ENDPOINT_URL: "https://script.google.com/macros/s/AKfycbzpT_x5ITn5RZBFfKOALsbMF3wEHAJbr2eS4opmNBUtnpV1zToPYiSh097cF8sr45sb/exec"
+};
+
+/* ===== Usuarios DEMO (uno por área) — reemplazar por la pestaña "Jefes" del Sheet ===== */
+var USUARIOS = [
+  {area:"ON NEGOCIOS INSTALACIONES",     nombre:"Jorge Rondón Díaz",       dni:"40288115", correo:"jrondon@optical-infra.pe",   rol:"Jefe de Área"},
+  {area:"NORMALIZACIÓN DE RED",          nombre:"Julio Chávez Bravo",      dni:"41552093", correo:"jchavez@optical-infra.pe",    rol:"Jefe de Área"},
+  {area:"MANTENIMIENTO ON NEGOCIOS",     nombre:"José Figueroa León",      dni:"43781142", correo:"jfigueroal@optical-infra.pe", rol:"Jefe de Área"},
+  {area:"MANTENIMIENTO MANGAS CRITICAS", nombre:"Juan Anca Quispe",        dni:"44890255", correo:"janca@optical-infra.pe",      rol:"Jefe de Área"},
+  {area:"INSTALACIÓN DE PLANTA EXTERNA", nombre:"Jesús Huasacca Roca",     dni:"45903388", correo:"jhuasacca@optical-infra.pe",  rol:"Jefe de Área"},
+  {area:"*",                             nombre:"Gabriela Abad Torres",    dni:"09112233", correo:"gabad@optical-infra.pe",      rol:"SSOMA · Todas las áreas"}
+];
+
+var AREAS = ["ON NEGOCIOS INSTALACIONES","NORMALIZACIÓN DE RED",
+  "MANTENIMIENTO ON NEGOCIOS","MANTENIMIENTO MANGAS CRITICAS","INSTALACIÓN DE PLANTA EXTERNA"];
+
+/* ===== Catálogos (subconjunto del SEG-F-010 para datos demo) ===== */
+var CAT = {
+  "EPP":["Casco de seguridad","Lentes de seguridad transparentes","Guantes dieléctricos","Calzado de seguridad",
+    "Chaleco de seguridad","Barbiquejo","Arnés con línea de vida y absorbedor","Tafilete","Guantes de cuero"],
+  "Herramientas ind.":["Alicate de Corte","Juego de desarmadores","Alicate Universal","Cinturón Porta Herramientas"],
+  "Señalización":["Conos de seguridad","Barras retráctiles","Banderines de escalera","Tacos de seguridad"],
+  "Herr. generales":["Escalera extensible de 28 pasos","Wincha pasa cable","Extensión eléctrica (mín. 15 m)","Candado anticizalla","Cuchilla (cúter)"],
+  "Escalera telescópica":["Zapatas antideslizantes","Ganchos trabapeldaños","Cuerda","Seguro de gancho trabapeldaños"],
+  "Kit fibra óptica":["Medidor de potencia óptica (Power Meter)","VFL (láser) con pilas","Peladora de fibra","Cortadora"],
+  "Extintor":["Manómetro: nivel de presión","Etiqueta de mantenimiento vigente","Pasador y/o precinto de seguridad"],
+  "Botiquín":["Vendas elásticas","Gasas esterilizadas 10x10","Alcohol 250 ml","Yodopovidona 120 ml"]
+};
+var SECCIONES = Object.keys(CAT);
+var TECNICOS = ["L. Ramírez Soto","M. Torres Vega","R. Gutiérrez Pino","A. Flores Díaz","C. Mendoza Ríos",
+  "P. Salas Cruz","E. Quispe Mamani","V. Rojas Luna","D. Castro Núñez","F. Huamán León"];
+
+/* ============================================================
+   DATOS DEMO  — observaciones realistas a lo largo de 5 semanas
+   ============================================================ */
+function seedRand(s){ return function(){ s=(s*9301+49297)%233280; return s/233280; }; }
+function pad(n){ return n<10?"0"+n:""+n; }
+function fechaISO(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function fechaCorta(iso){ var p=iso.split("-"); return p[2]+"/"+p[1]; }
+
+function generarDemo(){
+  var rnd=seedRand(7), obs=[], id=1000, hoy=new Date(2026,5,11); // 11/06/2026 jueves
+  // 5 semanas hacia atrás, inspecciones miércoles y jueves
+  for(var w=4; w>=0; w--){
+    AREAS.forEach(function(area,ai){
+      [3,4].forEach(function(wd){ // miércoles, jueves
+        var d=new Date(hoy); d.setDate(hoy.getDate()-w*7-(4-wd));
+        var nCuad=1+Math.floor(rnd()*2);
+        for(var c=0;c<nCuad;c++){
+          var cuad=10+ai*5+c+w; var inspId="INS-"+(id++);
+          var nObs=Math.floor(rnd()*4); // 0-3 hallazgos
+          for(var o=0;o<nObs;o++){
+            var sec=SECCIONES[Math.floor(rnd()*SECCIONES.length)];
+            var items=CAT[sec]; var item=items[Math.floor(rnd()*items.length)];
+            var estado=rnd()<0.62?"Requiere cambio":"No tiene";
+            var esPersonal=(sec==="EPP"||sec==="Herramientas ind.");
+            var tec=esPersonal?TECNICOS[Math.floor(rnd()*TECNICOS.length)]:"";
+            // estado de levantamiento — lo más antiguo, más levantado
+            var roll=rnd(); var lev, somaRech=false;
+            var ageBoost=(4-w)*0.10;
+            if(roll<0.30-ageBoost*0.4) lev="pendiente";
+            else if(roll<0.50-ageBoost*0.2) lev="en_proceso";
+            else if(roll<0.62) { lev="rechazado"; somaRech=true; }
+            else lev="levantado";
+            obs.push({
+              id:inspId+"-"+o, insp:inspId, area:area, fecha:fechaISO(d), cuadrilla:cuad,
+              seccion:sec, item:item, recurso:tec, estado:estado, levantamiento:lev, soma_rechazo:somaRech,
+              evidencia_insp:true,
+              evidencia_lev:(lev==="levantado"||lev==="en_proceso"),
+              folder:"Evidencias Levantamiento/"+fechaISO(d)+"/"+area
+            });
+          }
+        }
+      });
+    });
+  }
+  return obs;
+}
+
+/* ============================================================
+   ESTADO DE LA APP
+   ============================================================ */
+var APP = { user:null, areaActiva:null, datos:[], filtros:{q:"",estado:"",seccion:"",lev:""}, demo:true,
+  ats:[], atsDemo:true, filtrosAts:{q:"",tipo:"",periodo:"30"} };
+
+var EST_LEV = {
+  pendiente:{label:"Pendiente",cls:"na",dot:"#94a3b8"},
+  en_proceso:{label:"En revisión",cls:"info",dot:"#0284c7"},
+  levantado:{label:"Levantado",cls:"ok",dot:"#16a34a"},
+  rechazado:{label:"Rechazado SOMA",cls:"bad",dot:"#dc2626"}
+};
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+function norm(s){ return String(s||"").trim().toLowerCase().replace(/\s+/g," ").normalize("NFD").replace(/[̀-ͯ]/g,""); }
+
+/* Roster de autenticación: se carga desde la pestaña "Jefes" del Sheet (vía doGet?action=jefes)
+   cuando hay endpoint; si no hay endpoint o la pestaña está vacía, usa los usuarios demo. */
+var ROSTER = USUARIOS.slice();
+var rosterDemo = true;
+var rosterReady = null;
+
+// Convierte una fila de la pestaña "Jefes" {area,nombre,dni,correo[,rol]} al formato interno.
+function mapJefe(j){
+  var area=String(j.area||"").trim(), na=norm(area);
+  var esTodas = area==="*" || na==="todas" || na==="ssoma" || na.indexOf("todas las")===0;
+  return { area: esTodas?"*":area, nombre:String(j.nombre||"").trim(), dni:String(j.dni||"").trim(),
+    correo:String(j.correo||"").trim(),
+    rol:(j.rol&&String(j.rol).trim()) || (esTodas?"SSOMA · Todas las áreas":"Jefe de Área") };
+}
+
+function cargarRoster(){
+  if(!(CONFIG.ENDPOINT_URL && CONFIG.ENDPOINT_URL.indexOf("http")===0)){ rosterDemo=true; renderDemoHint(); return Promise.resolve(); }
+  var url=CONFIG.ENDPOINT_URL+(CONFIG.ENDPOINT_URL.indexOf("?")>=0?"&":"?")+"action=jefes";
+  return fetch(url).then(function(r){return r.json();}).then(function(data){
+    var lista=(data.jefes||data||[]).map(mapJefe).filter(function(j){return j.nombre&&j.dni;});
+    if(lista.length){ ROSTER=lista; rosterDemo=false; }   // datos reales del Sheet
+    renderDemoHint();
+  }).catch(function(){ rosterDemo=true; renderDemoHint(); });   // sin conexión → respaldo demo
+}
+
+// Solo se muestra en modo demo. En producción (roster del Sheet) se oculta para no exponer DNIs.
+// Llena el desplegable de áreas del login a partir del roster (demo o real).
+function poblarAreasLogin(){
+  var sel=document.getElementById("larea"); if(!sel) return;
+  var prev=sel.value, areas=[], vistos={};
+  ROSTER.forEach(function(u){
+    if(u.area==="*"){ if(vistos["*"])return; vistos["*"]=1; areas.push({val:"*",lbl:"SSOMA · Todas las áreas"}); }
+    else { var k=norm(u.area); if(!u.area||vistos[k])return; vistos[k]=1; areas.push({val:u.area,lbl:u.area}); }
+  });
+  areas.sort(function(a,b){ if(a.val==="*")return 1; if(b.val==="*")return -1; return a.lbl.localeCompare(b.lbl); });
+  sel.innerHTML='<option value="">— Selecciona tu área —</option>'+areas.map(function(a){
+    return '<option value="'+String(a.val).replace(/"/g,"&quot;")+'">'+a.lbl+'</option>';
+  }).join("");
+  if(prev) sel.value=prev;
+}
+
+// Solo se muestra en modo demo. En producción (roster del Sheet) se oculta para no exponer DNIs.
+function renderDemoHint(){
+  poblarAreasLogin();
+  var hint=document.getElementById("demoHint");
+  if(!rosterDemo){ hint.style.display="none"; return; }
+  hint.style.display="";
+  document.getElementById("demoTable").innerHTML=ROSTER.map(function(u){
+    var et=u.area==="*"?"SSOMA · Todas las áreas":u.area;
+    return '<tr><td class="pick" data-area="'+String(u.area).replace(/"/g,"&quot;")+'" data-p="'+u.dni+'">'+et+'</td>'+
+           '<td style="color:#475569">'+u.nombre+'</td><td class="tnum">'+u.dni+'</td></tr>';
+  }).join("");
+  document.querySelectorAll("#demoTable .pick").forEach(function(el){
+    el.onclick=function(){ document.getElementById("larea").value=el.dataset.area; document.getElementById("lpass").value=el.dataset.p; };
+  });
+}
+
+document.getElementById("loginForm").addEventListener("submit",function(e){
+  e.preventDefault();
+  var btn=this.querySelector("button[type=submit]"), err=document.getElementById("lerr");
+  err.textContent=""; btn.disabled=true; var txt=btn.textContent; btn.textContent="Verificando…";
+  (rosterReady||Promise.resolve()).then(function(){
+    var area=document.getElementById("larea").value, p=document.getElementById("lpass").value.trim();
+    btn.disabled=false; btn.textContent=txt;
+    if(!area){ err.textContent="Selecciona tu área."; return; }
+    var found=ROSTER.find(function(x){ return norm(x.area)===norm(area) && String(x.dni)===p; });
+    if(!found){ err.textContent="DNI incorrecto para el área seleccionada."; return; }
+    iniciarSesion(found);
+  });
+});
+
+function iniciarSesion(user){
+  APP.user=user;
+  APP.areaActiva = user.area==="*" ? AREAS[0] : user.area;
+  document.getElementById("login").style.display="none";
+  var app=document.getElementById("app"); app.hidden=false;
+  // usuario sidebar
+  var ini=user.nombre.split(" ").map(function(w){return w[0];}).slice(0,2).join("").toUpperCase();
+  document.getElementById("uAv").textContent=ini;
+  document.getElementById("uName").textContent=user.nombre;
+  document.getElementById("uRole").textContent=user.rol;
+  // selector de área para SSOMA
+  if(user.area==="*"){
+    var sel=document.getElementById("areaSelect"); sel.style.display="";
+    sel.innerHTML='<option value="__ALL__">▦ Todas las áreas</option>';
+    sel.value="__ALL__"; APP.areaActiva="__ALL__";
+    sel.onchange=function(){ APP.areaActiva=sel.value; refrescar(); };
+  }
+  cargarDatos();
+}
+
+document.getElementById("logoutBtn").onclick=function(){ location.reload(); };
+
+// Mostrar / ocultar el DNI en el login
+document.getElementById("pwdEye").onclick=function(){
+  var i=document.getElementById("lpass"), show=(i.type==="password");
+  i.type=show?"text":"password";
+  this.innerHTML=show
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 13 1 13a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="2" y1="2" x2="22" y2="22"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+  i.focus();
+};
+
+/* ============================================================
+   CARGA DE DATOS  (endpoint real o demo)
+   ============================================================ */
+function cargarDatos(){
+  prepararAts();   // registros de ATS / Charla de 5 min (demo o endpoint)
+  if(CONFIG.ENDPOINT_URL && CONFIG.ENDPOINT_URL.indexOf("http")===0){
+    APP.demo=false;
+    var url=CONFIG.ENDPOINT_URL+(CONFIG.ENDPOINT_URL.indexOf("?")>=0?"&":"?")+"action=observaciones";
+    fetch(url).then(function(r){return r.json();}).then(function(data){
+      APP.datos=(data.observaciones||data||[]).map(normalizarObs);
+      refrescar();
+    }).catch(function(){
+      toast("No se pudo leer el endpoint. Mostrando datos demo.","bad");
+      APP.demo=true; APP.datos=generarDemo(); refrescar();
+    });
+  } else {
+    APP.demo=true; APP.datos=generarDemo(); refrescar();
+  }
+}
+
+/* ============================================================
+   CARGA DE REGISTROS ATS / CHARLA DE 5 MIN  (endpoint real o demo)
+   La app de campo sube cada ATS/Charla a Drive y los registra en una
+   hoja "Registros"; el panel los lee vía doGet?action=registros.
+   ============================================================ */
+function prepararAts(){
+  // Siempre deja datos demo listos de forma síncrona (para el primer render);
+  // si hay endpoint, los reemplaza al llegar la respuesta.
+  APP.ats=generarDemoAts(); APP.atsDemo=true;
+  if(CONFIG.ATS_ENDPOINT_URL && CONFIG.ATS_ENDPOINT_URL.indexOf("http")===0){
+    var url=CONFIG.ATS_ENDPOINT_URL+(CONFIG.ATS_ENDPOINT_URL.indexOf("?")>=0?"&":"?")+"action=registros";
+    fetch(url).then(function(r){return r.json();}).then(function(data){
+      // Acepta [ ... ] o { registros:[ ... ] }. Cualquier otra cosa (p. ej. el health-check
+      // del backend aún no re-desplegado) → lista vacía y se conserva el demo, sin romper.
+      var raw = Array.isArray(data) ? data : ((data && data.registros) || []);
+      var lista = raw.map(normalizarAts).filter(function(x){ return x.fecha; });
+      if(lista.length){ APP.ats=lista; APP.atsDemo=false; }
+      var act=document.querySelector(".nav-item.active");
+      if(act && act.dataset.view==="ats") renderAts();
+    }).catch(function(){ /* sin conexión / respuesta no válida → se queda el demo */ });
+  }
+}
+// Mapea (área, división) de la app de campo → "área" del panel.
+// La app ATS guarda un ÁREA amplia (INSPECCIÓN Y DISEÑO / MANTENIMIENTO / NETWORKING / PLANTA
+// EXTERNA) y una DIVISIÓN aparte; las 5 "áreas" del panel corresponden a combinaciones de ambas.
+// Por defecto devuelve el área tal cual (así los datos DEMO, que ya usan los nombres del panel,
+// funcionan sin tocar nada). Para DATOS REALES descomenta/ajusta el mapeo — confírmalo con SSOMA.
+function mapArea(area, division){
+  area=String(area||"").trim(); division=String(division||"").trim();
+  // Override manual para casos que no calcen con la regla por defecto (descomenta y ajusta):
+  // var a=norm(area), d=norm(division);
+  // if(a==="planta externa" && d==="on negocios") return "PLANTA EXTERNA ▸ ON Negocios";
+  // Por defecto el "área" del panel = "ÁREA ▸ División" (mismo formato de la pestaña Jefes/roster),
+  // que es justo la combinación que la app de campo guarda por separado. Así cada jefe calza solo.
+  return division ? (area + " ▸ " + division) : area;
+}
+// Normaliza una fila de la hoja "Registros" (o un objeto meta) al formato interno.
+function normalizarAts(r){
+  r=r||{};
+  var tipoRaw=String(r.tipo||r.Tipo||"");
+  var tipo=/charla|5\s*min/i.test(tipoRaw) ? "Charla-5min" : "ATS";
+  var division=String(r.division||r["División"]||r.Division||"").trim();
+  var area=mapArea(String(r.area||r["Área"]||r.Area||"").trim(), division);
+  var fecha=String(r.fecha||r.Fecha||"").slice(0,10);
+  return {
+    tipo:tipo,
+    cliente:String(r.cliente||r.Cliente||"").trim(),
+    circuito:String(r.circuito||r.Circuito||"").trim(),
+    fecha:fecha,
+    cuadrilla:String(r.cuadrilla||r.Cuadrilla||"").trim(),
+    area:area,
+    division:division,
+    archivos:(+(r.archivos||r["N° archivos"]||r.nArchivos||1))||1,
+    folder:String(r.carpeta||r.Carpeta||r.folder||"").trim(),
+    recibido:String(r.recibido||r.Recibido||r.enviadoEn||fecha)
+  };
+}
+function normalizarObs(o){
+  return {
+    id:o.id||(o.insp+"-"+Math.random()), insp:o.insp||o.id_inspeccion||o.id, area:o.area,
+    fecha:o.fecha, cuadrilla:o.cuadrilla, seccion:o.seccion, item:o.item,
+    recurso:o.recurso||"", estado:o.estado,
+    levantamiento:o.levantamiento||"pendiente", soma_rechazo:!!o.soma_rechazo,
+    evidencia_insp:o.evidencia_insp!==false, evidencia_lev:!!o.evidencia_lev,
+    evidencia_url:o.evidencia_url||"", mensaje_jefe:o.mensaje_jefe||"", mensaje_ssoma:o.mensaje_ssoma||"",
+    folder:o.folder||("Evidencias Levantamiento/"+o.fecha+"/"+o.area)
+  };
+}
+
+// === Regla de negocio: solo se consideran las observaciones de los días PROGRAMADOS
+//     = miércoles y jueves de la SEMANA ACTUAL. El resto de fechas se ignora. ===
+function diasProgramados(){
+  var hoy=new Date(); hoy.setHours(0,0,0,0);
+  var lunes=new Date(hoy); lunes.setDate(hoy.getDate()-((hoy.getDay()+6)%7)); // lunes de esta semana
+  var mie=new Date(lunes); mie.setDate(lunes.getDate()+2);
+  var jue=new Date(lunes); jue.setDate(lunes.getDate()+3);
+  return [fechaISO(mie), fechaISO(jue)];
+}
+function baseDatos(){
+  var dp=diasProgramados();
+  return APP.datos.filter(function(o){ return dp.indexOf(o.fecha)>=0; });
+}
+function datosArea(){
+  if(!APP.user) return [];
+  var base=baseDatos();
+  if(APP.user.area==="*"){
+    if(APP.areaActiva==="__ALL__") return base;
+    var aa=norm(APP.areaActiva);
+    return base.filter(function(o){return norm(o.area)===aa;});
+  }
+  var a=norm(APP.user.area);
+  return base.filter(function(o){return norm(o.area)===a;});
+}
+// Áreas realmente presentes en los datos vigentes (para el selector y comparativo del SSOMA)
+function areasPresentes(){
+  var s={}, out=[];
+  baseDatos().forEach(function(o){ if(o.area && !s[o.area]){ s[o.area]=1; out.push(o.area); } });
+  return out.sort();
+}
+// Áreas presentes en los registros de ATS / Charla de 5 min.
+function areasPresentesAts(){
+  var s={}, out=[];
+  APP.ats.forEach(function(o){ if(o.area && !s[o.area]){ s[o.area]=1; out.push(o.area); } });
+  return out.sort();
+}
+// Rellena el selector de área del SSOMA con las áreas que existen en los datos
+// (observaciones + registros de ATS/Charla, para que el filtro sirva en ambas pestañas).
+function poblarAreaSelect(){
+  if(!APP.user || APP.user.area!=="*") return;
+  var sel=document.getElementById("areaSelect"); if(!sel) return;
+  var prev=sel.value||"__ALL__", set={}, areas=[];
+  areasPresentes().forEach(function(a){ if(!set[a]){ set[a]=1; areas.push(a); } });
+  areasPresentesAts().forEach(function(a){ if(!set[a]){ set[a]=1; areas.push(a); } });
+  areas.sort();
+  sel.innerHTML='<option value="__ALL__">▦ Todas las áreas</option>'+
+    areas.map(function(a){return '<option value="'+esc(a)+'">'+esc(a)+'</option>';}).join("");
+  sel.value=prev||"__ALL__"; if(!sel.value) sel.value="__ALL__";
+}
+
+/* ============================================================
+   NAVEGACIÓN
+   ============================================================ */
+var TITLES={resumen:["Resumen","Estado general del levantamiento de observaciones"],
+  observaciones:["Observaciones","Hallazgos que requieren cambio o no tiene"],
+  evidencias:["Evidencias","Carpetas fechadas en Google Drive"],
+  analisis:["Análisis","Inteligencia de datos sobre los hallazgos"],
+  ats:["ATS · Charla de 5 min","Llenado diario de ATS y Charlas de 5 minutos en campo"]};
+function navTo(v){
+  document.querySelectorAll(".nav-item").forEach(function(x){x.classList.toggle("active", x.dataset.view===v);});
+  document.querySelectorAll(".view").forEach(function(s){s.classList.remove("active");});
+  document.getElementById("view-"+v).classList.add("active");
+  document.getElementById("viewTitle").textContent=TITLES[v][0];
+  document.getElementById("viewSub").textContent=TITLES[v][1];
+  document.getElementById("aside").classList.remove("open");
+  if(v==="resumen") renderResumen();
+  else if(v==="observaciones") renderObservaciones();
+  else if(v==="evidencias") renderEvidencias();
+  else if(v==="analisis") renderAnalisis();
+  else if(v==="ats") renderAts();
+}
+document.querySelectorAll(".nav-item").forEach(function(b){ b.onclick=function(){ navTo(b.dataset.view); }; });
+document.getElementById("menuToggle").onclick=function(){ document.getElementById("aside").classList.toggle("open"); };
+var _bh=document.getElementById("brandHome"); if(_bh) _bh.onclick=function(){ navTo("resumen"); };
+
+// Atajo desde las tarjetas KPI del Resumen → Observaciones ya filtradas
+function irAObservaciones(filtros){
+  APP.filtros={q:"",estado:"",seccion:"",lev:""};
+  for(var k in filtros){ APP.filtros[k]=filtros[k]; }
+  var s=document.getElementById("search"); if(s) s.value="";
+  var fe=document.getElementById("fEstado"); if(fe) fe.value=APP.filtros.estado||"";
+  var fsq=document.getElementById("fSeccion"); if(fsq) fsq.value=APP.filtros.seccion||"";
+  var fl=document.getElementById("fLev"); if(fl) fl.value=APP.filtros.lev||"";
+  navTo("observaciones");
+}
+
+function refrescar(){
+  poblarAreaSelect();
+  var et = APP.user.area==="*" ? (APP.areaActiva==="__ALL__"?"Todas las áreas":APP.areaActiva) : APP.user.area;
+  document.getElementById("areaLabel").textContent=et;
+  document.getElementById("demoBanner").innerHTML = APP.demo
+    ? '<div class="banner-demo">⚠️ <b>Modo demostración</b> · datos de ejemplo. Configura <code>CONFIG.ENDPOINT_URL</code> para conectar tu Google Sheet en tiempo real.</div>' : '';
+  var active=document.querySelector(".nav-item.active").dataset.view;
+  if(active==="resumen") renderResumen();
+  else if(active==="observaciones") renderObservaciones();
+  else if(active==="evidencias") renderEvidencias();
+  else if(active==="analisis") renderAnalisis();
+  else if(active==="ats") renderAts();
+}
+
+/* ============================================================
+   HELPERS DE GRÁFICOS (SVG puro, sin dependencias)
+   ============================================================ */
+var COL={"Requiere cambio":"#d97706","No tiene":"#dc2626","levantado":"#16a34a","en_proceso":"#0284c7","pendiente":"#94a3b8","rechazado":"#dc2626"};
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function donut(segs,centerLabel,centerSub){
+  var total=segs.reduce(function(a,s){return a+s.value;},0);
+  if(!total) return emptyChart("Sin datos");
+  var r=58,cx=80,cy=80,circ=2*Math.PI*r,off=0;
+  var arcs=segs.filter(function(s){return s.value>0;}).map(function(s){
+    var frac=s.value/total, len=frac*circ;
+    var el='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+s.color+'" stroke-width="22" '+
+      'stroke-dasharray="'+len+' '+(circ-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 '+cx+' '+cy+')" stroke-linecap="butt"/>';
+    off+=len; return el;
+  }).join("");
+  var leg=segs.map(function(s){return '<i><span class="sw" style="background:'+s.color+'"></span>'+esc(s.label)+' <b style="margin-left:3px">'+s.value+'</b></i>';}).join("");
+  return '<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">'+
+    '<svg width="160" height="160" viewBox="0 0 160 160">'+arcs+
+    '<text x="80" y="74" text-anchor="middle" font-size="30" font-weight="800" fill="#0f172a">'+centerLabel+'</text>'+
+    '<text x="80" y="94" text-anchor="middle" font-size="11" fill="#64748b">'+esc(centerSub||"")+'</text></svg>'+
+    '<div class="legend" style="flex-direction:column;gap:8px">'+leg+'</div></div>';
+}
+
+function barChart(data,opts){
+  opts=opts||{}; var max=Math.max.apply(null,data.map(function(d){return d.value;}).concat([1]));
+  var bw=Math.max(30,Math.min(70,Math.floor(560/data.length))), gap=14, h=180, w=data.length*(bw+gap)+10;
+  var bars=data.map(function(d,i){
+    var bh=Math.round(d.value/max*(h-34)), x=i*(bw+gap)+5, y=h-bh-22;
+    var col=d.color||"#0284c7";
+    return '<g><rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+bh+'" rx="6" fill="'+col+'"><title>'+esc(d.label)+': '+d.value+'</title></rect>'+
+      '<text x="'+(x+bw/2)+'" y="'+(y-5)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#334155">'+d.value+'</text>'+
+      '<text x="'+(x+bw/2)+'" y="'+(h-6)+'" text-anchor="middle" font-size="10.5" fill="#64748b">'+esc(d.short||d.label)+'</text></g>';
+  }).join("");
+  return '<div style="overflow-x:auto"><svg width="'+Math.max(w,300)+'" height="'+h+'" viewBox="0 0 '+Math.max(w,300)+' '+h+'">'+bars+'</svg></div>';
+}
+
+function hBars(data){
+  var max=Math.max.apply(null,data.map(function(d){return d.value;}).concat([1]));
+  return '<div style="display:flex;flex-direction:column;gap:11px">'+data.map(function(d){
+    var pct=Math.round(d.value/max*100);
+    return '<div><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px">'+
+      '<span style="font-weight:600;color:#334155">'+esc(d.label)+'</span><b class="tnum">'+d.value+'</b></div>'+
+      '<div style="height:9px;background:#eef2f6;border-radius:999px;overflow:hidden"><i style="display:block;height:100%;width:'+pct+'%;border-radius:999px;background:'+(d.color||"linear-gradient(90deg,#0284c7,#0ea5e9)")+'"></i></div></div>';
+  }).join("")+'</div>';
+}
+
+function lineChart(points){ // points: [{x,y}]
+  if(!points.length) return emptyChart("Sin datos");
+  var w=560,h=190,pad=28,maxY=Math.max.apply(null,points.map(function(p){return p.y;}).concat([1]));
+  var n=points.length, dx=(w-pad*2)/Math.max(1,n-1);
+  var coords=points.map(function(p,i){ return {x:pad+i*dx, y:h-22-(p.y/maxY)*(h-46), v:p.y, lbl:p.x}; });
+  var line=coords.map(function(c,i){return (i?"L":"M")+c.x+" "+c.y;}).join(" ");
+  var area=line+" L"+coords[n-1].x+" "+(h-22)+" L"+coords[0].x+" "+(h-22)+" Z";
+  var dots=coords.map(function(c){return '<circle cx="'+c.x+'" cy="'+c.y+'" r="3.5" fill="#fff" stroke="#0284c7" stroke-width="2"><title>'+esc(c.lbl)+': '+c.v+'</title></circle>';}).join("");
+  var labels=coords.map(function(c,i){ return (i%Math.ceil(n/8===0?1:n/8)===0)?'<text x="'+c.x+'" y="'+(h-6)+'" text-anchor="middle" font-size="10" fill="#94a3b8">'+esc(c.lbl)+'</text>':""; }).join("");
+  var grid=[0,.25,.5,.75,1].map(function(g){var y=h-22-g*(h-46);return '<line x1="'+pad+'" y1="'+y+'" x2="'+(w-pad)+'" y2="'+y+'" stroke="#f1f5f9"/>'+'<text x="'+(pad-6)+'" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#cbd5e1">'+Math.round(maxY*g)+'</text>';}).join("");
+  return '<div style="overflow-x:auto"><svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">'+grid+
+    '<defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0284c7" stop-opacity=".22"/><stop offset="1" stop-color="#0284c7" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="'+area+'" fill="url(#ag)"/><path d="'+line+'" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linejoin="round"/>'+dots+labels+'</svg></div>';
+}
+function emptyChart(msg){ return '<div class="empty-state" style="padding:34px"><div class="em">📭</div>'+msg+'</div>'; }
+
+/* ============================================================
+   VISTA: RESUMEN
+   ============================================================ */
+function renderResumen(){
+  var d=datosArea();
+  var req=d.filter(function(o){return o.estado==="Requiere cambio";}).length;
+  var not=d.filter(function(o){return o.estado==="No tiene";}).length;
+  var lev=d.filter(function(o){return o.levantamiento==="levantado";}).length;
+  var pend=d.filter(function(o){return o.levantamiento==="pendiente"||o.levantamiento==="en_proceso";}).length;
+  var rech=d.filter(function(o){return o.levantamiento==="rechazado";}).length;
+  var avance=d.length?Math.round(lev/d.length*100):0;
+
+  document.getElementById("kpis").innerHTML=[
+    kpi("#e0f2fe","#0369a1",iconClip(),d.length,"Observaciones totales",null,{}),
+    kpi("#fef3c7","#b45309",iconWarn(),req,"Requiere cambio",null,{estado:"Requiere cambio"}),
+    kpi("#fee2e2","#b91c1c",iconX(),not,"No tiene",null,{estado:"No tiene"}),
+    kpi("#dcfce7","#15803d",iconCheck(),lev,"Levantadas",avance+"% avance",{lev:"levantado"}),
+    kpi("#ede9fe","#6d28d9",iconClock(),pend,"Pendientes",null,{lev:"abiertas"}),
+    kpi("#fee2e2","#b91c1c",iconBan(),rech,"Rechazadas SOMA",null,{lev:"rechazado"})
+  ].join("");
+  document.querySelectorAll("#kpis .kpi.clk").forEach(function(el){
+    el.onclick=function(){ irAObservaciones(JSON.parse(el.getAttribute("data-goto"))); };
+  });
+
+  // tendencia: observaciones por fecha
+  var porFecha={};
+  d.forEach(function(o){ porFecha[o.fecha]=(porFecha[o.fecha]||0)+1; });
+  var fechas=Object.keys(porFecha).sort();
+  document.getElementById("trendChart").innerHTML=lineChart(fechas.map(function(f){return {x:fechaCorta(f),y:porFecha[f]};}));
+  document.getElementById("trendSub").textContent=fechas.length+" fechas de inspección";
+
+  document.getElementById("estadoChart").innerHTML=donut(
+    [{label:"Requiere cambio",value:req,color:COL["Requiere cambio"]},{label:"No tiene",value:not,color:COL["No tiene"]}],
+    d.length, "hallazgos");
+
+  // por sección
+  var porSec={};
+  d.forEach(function(o){ porSec[o.seccion]=(porSec[o.seccion]||0)+1; });
+  var secData=SECCIONES.filter(function(s){return porSec[s];}).map(function(s){return {label:s,short:s.split(" ")[0],value:porSec[s],color:"#0284c7"};})
+    .sort(function(a,b){return b.value-a.value;});
+  document.getElementById("seccionChart").innerHTML=barChart(secData);
+
+  // avance: estado de levantamiento
+  document.getElementById("avanceChart").innerHTML=donut(
+    [{label:"Levantado",value:lev,color:COL.levantado},
+     {label:"En revisión",value:d.filter(function(o){return o.levantamiento==="en_proceso";}).length,color:COL.en_proceso},
+     {label:"Pendiente",value:d.filter(function(o){return o.levantamiento==="pendiente";}).length,color:COL.pendiente},
+     {label:"Rechazado",value:rech,color:COL.rechazado}],
+    avance+"%","levantado");
+  document.getElementById("avanceSub").textContent=lev+" de "+d.length+" cerradas";
+}
+function kpi(bg,fg,icon,val,label,trend,goto){
+  var clk=goto?' clk':'';
+  var dg=goto?" data-goto='"+JSON.stringify(goto)+"'":'';
+  return '<div class="kpi'+clk+'"'+dg+'><div class="ic" style="background:'+bg+';color:'+fg+'">'+icon+'</div>'+
+    '<div class="v tnum">'+val+'</div><div class="l">'+label+'</div>'+
+    (trend?'<div class="trend" style="background:'+bg+';color:'+fg+'">'+trend+'</div>':'')+'</div>';
+}
+
+/* ============================================================
+   VISTA: OBSERVACIONES
+   ============================================================ */
+function renderObservaciones(){
+  // poblar select de secciones una sola vez
+  var fs=document.getElementById("fSeccion");
+  if(fs.options.length<=1){ SECCIONES.forEach(function(s){ var op=document.createElement("option"); op.textContent=s; fs.appendChild(op); }); }
+  var d=datosArea(), f=APP.filtros;
+  var rows=d.filter(function(o){
+    if(f.estado && o.estado!==f.estado) return false;
+    if(f.seccion && o.seccion!==f.seccion) return false;
+    if(f.lev){
+      if(f.lev==="abiertas"){ if(o.levantamiento!=="pendiente" && o.levantamiento!=="en_proceso") return false; }
+      else if(o.levantamiento!==f.lev) return false;
+    }
+    if(f.q){ var q=norm(f.q); if(norm(o.item+" "+o.recurso+" "+o.cuadrilla+" "+o.seccion+" "+o.area).indexOf(q)<0) return false; }
+    return true;
+  }).sort(function(a,b){
+    if(a.area!==b.area) return a.area<b.area?-1:1;   // agrupa por área
+    return a.fecha<b.fecha?1:-1;                       // dentro del área, más reciente primero
+  });
+
+  document.getElementById("obsCount").textContent=rows.length+" observación(es)";
+  var body=document.getElementById("obsBody");
+  if(!rows.length){ body.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="em">🎉</div>Sin observaciones con estos filtros.</div></td></tr>'; return; }
+  body.innerHTML=rows.map(function(o){
+    var l=EST_LEV[o.levantamiento];
+    var estCls=o.estado==="No tiene"?"bad":"warn";
+    return '<tr data-id="'+o.id+'">'+
+      '<td class="tnum">'+fechaCorta(o.fecha)+'</td>'+
+      '<td style="font-size:12px;font-weight:600;color:#075985;white-space:normal;max-width:160px;line-height:1.25">'+esc(o.area)+'</td>'+
+      '<td><b>N° '+o.cuadrilla+'</b></td>'+
+      '<td>'+o.seccion+'</td>'+
+      '<td><b>'+esc(o.item)+'</b></td>'+
+      '<td>'+(o.recurso?esc(o.recurso):'<span style="color:#cbd5e1">—</span>')+'</td>'+
+      '<td><span class="pill '+estCls+'">'+o.estado+'</span></td>'+
+      '<td><span class="pill '+l.cls+'"><span class="dot-s" style="background:'+l.dot+'"></span>'+l.label+'</span></td>'+
+      '</tr>';
+  }).join("");
+  body.querySelectorAll("tr[data-id]").forEach(function(tr){ tr.onclick=function(){ abrirDrawer(tr.dataset.id); }; });
+}
+document.getElementById("search").oninput=function(){ APP.filtros.q=this.value; renderObservaciones(); };
+document.getElementById("fEstado").onchange=function(){ APP.filtros.estado=this.value; renderObservaciones(); };
+document.getElementById("fSeccion").onchange=function(){ APP.filtros.seccion=this.value; renderObservaciones(); };
+document.getElementById("fLev").onchange=function(){ APP.filtros.lev=this.value; renderObservaciones(); };
+
+/* ============================================================
+   DRAWER de detalle
+   ============================================================ */
+function abrirDrawer(id){
+  var o=APP.datos.find(function(x){return x.id===id;}); if(!o) return;
+  var isSSOMA=APP.user && APP.user.area==="*";
+  var l=EST_LEV[o.levantamiento];
+  var estCls=o.estado==="No tiene"?"bad":"warn";
+  var evLev = o.evidencia_lev
+    ? '<div class="ev-thumbs"><div class="t">📷 Evidencia<br>cargada</div></div>'+
+      (o.evidencia_url
+        ? '<p style="font-size:12px;margin:8px 0 0"><a href="'+esc(o.evidencia_url)+'" target="_blank" rel="noopener" style="color:var(--brand2);font-weight:700">Ver / descargar evidencia en Drive →</a></p>'
+        : '<p style="font-size:11.5px;color:#64748b;margin:8px 0 0">Almacenada en <code>'+esc(o.folder)+'</code></p>')
+    : '<p class="msg-empty">Aún no se ha cargado evidencia del levantamiento.</p>';
+  var somaWarn = o.soma_rechazo
+    ? '<div class="banner-demo" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;margin:14px 0 0">🚫 <b>Rechazada por SOMA.</b> La evidencia fue eliminada automáticamente de Drive. Debe volver a gestionarse.</div>' : '';
+
+  var html=
+    '<div class="dh"><button class="x" id="drwClose">×</button>'+
+      '<span class="pill '+estCls+'" style="margin-bottom:8px">'+o.estado+'</span>'+
+      '<h2 style="margin:8px 0 2px;font-size:19px">'+esc(o.item)+'</h2>'+
+      '<p style="margin:0;color:#64748b;font-size:13px">'+o.seccion+' · '+o.area+'</p></div>'+
+    '<div class="db">'+
+      '<div class="meta-grid">'+
+        meta("Fecha de inspección",fechaCorta(o.fecha)+"/2026")+
+        meta("Cuadrilla","N° "+o.cuadrilla)+
+        meta("Recurso / Técnico",o.recurso||"Recurso general")+
+        meta("ID inspección",o.insp)+
+      '</div>'+
+      somaWarn+
+      '<div class="sect">Evidencia del levantamiento</div>'+evLev+
+      '<div class="sect">Estado del levantamiento</div>'+
+      '<span class="pill '+l.cls+'" style="font-size:13px"><span class="dot-s" style="background:'+l.dot+'"></span>'+l.label+'</span>'+
+      '<div class="sect">Comunicación jefe ↔ SSOMA</div>'+
+      (o.mensaje_jefe?'<div class="msg jefe"><b>🧑‍🔧 Jefe de área</b>'+esc(o.mensaje_jefe)+'</div>':'')+
+      (o.mensaje_ssoma?'<div class="msg ssoma"><b>🛡️ SSOMA</b>'+esc(o.mensaje_ssoma)+'</div>':'')+
+      ((!o.mensaje_jefe&&!o.mensaje_ssoma)?'<p class="msg-empty">Aún no hay mensajes.</p>':'')+
+      (isSSOMA
+        ? '<div class="sect">Revisión SSOMA</div>'+
+          '<textarea id="aMsg" class="msg-input" placeholder="Indicación o motivo para el jefe (opcional)">'+esc(o.mensaje_ssoma||"")+'</textarea>'+
+          '<div class="act-btns" style="margin-top:8px">'+
+            (o.evidencia_lev
+              ? '<button class="act green" id="aApprove">✓ Aprobar y validar levantamiento</button>'+
+                '<button class="act ghost-bad" id="aReject">✗ Rechazar evidencia (la elimina de Drive)</button>'+
+                '<button class="act" id="aFolder">📂 Abrir evidencia en Drive</button>'
+              : '<p class="msg-empty">El área aún no ha cargado evidencia para revisar.</p>')+
+            '<button class="act" id="aMsgSend">✉ Enviar indicación al jefe</button>'+
+          '</div>'
+        : '<div class="sect">Gestión del levantamiento</div>'+
+          '<label class="file-pick"><span style="font-size:16px">📎</span><span id="aFileName">Adjuntar evidencia (foto o PDF)…</span>'+
+            '<input type="file" id="aFile" accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png" multiple style="display:none"></label>'+
+          '<textarea id="aMsg" class="msg-input" style="margin-top:8px" placeholder="Comentario para SSOMA (qué se hizo, detalle del levantamiento)…">'+esc(o.mensaje_jefe||"")+'</textarea>'+
+          '<button class="act blue" id="aEnviar" style="margin-top:8px;width:100%">📤 Enviar evidencia + comentario</button>'
+      )+
+      '<div class="sect">Historial</div>'+
+      '<div class="timeline">'+
+        tlEv("Hallazgo registrado","Inspección "+fechaCorta(o.fecha)+" · técnico en campo")+
+        (o.evidencia_lev?tlEv("Evidencia cargada por el jefe","En revisión por SSOMA"):"")+
+        (o.mensaje_jefe?tlEv("Mensaje del jefe","Enviado a SSOMA"):"")+
+        (o.mensaje_ssoma?tlEv("Indicación de SSOMA","Enviada al jefe de área"):"")+
+        (o.soma_rechazo?tlEv("Rechazada por SSOMA","Evidencia eliminada de Drive · re-gestionar"):"")+
+        (o.levantamiento==="levantado"?tlEv("Levantamiento validado por SSOMA","Observación cerrada"):"")+
+      '</div>'+
+    '</div>';
+  document.getElementById("drawer").innerHTML=html;
+  document.getElementById("scrim").classList.add("open");
+  document.getElementById("drwClose").onclick=cerrarDrawer;
+  var bApprove=document.getElementById("aApprove"); if(bApprove) bApprove.onclick=function(){ aprobarSSOMA(o); };
+  var bReject=document.getElementById("aReject"); if(bReject) bReject.onclick=function(){ rechazarSSOMA(o); };
+  var bMsg=document.getElementById("aMsgSend"); if(bMsg) bMsg.onclick=function(){ guardarMensaje(o,"ssoma"); };
+  var bFolder=document.getElementById("aFolder"); if(bFolder) bFolder.onclick=function(){ abrirDrive(o); };
+  var bEnviar=document.getElementById("aEnviar"); if(bEnviar) bEnviar.onclick=function(){ enviarLevantamiento(o); };
+  var fInput=document.getElementById("aFile");
+  if(fInput) fInput.onchange=function(){ var n=document.getElementById("aFileName"); if(n) n.textContent=fInput.files.length?(fInput.files.length+" archivo(s) seleccionado(s) ✓"):"Adjuntar evidencia (foto o PDF)…"; };
+}
+function meta(l,v){ return '<div class="m"><label>'+l+'</label><b>'+esc(v)+'</b></div>'; }
+function tlEv(t,s){ return '<div class="ev"><b>'+esc(t)+'</b><span>'+esc(s)+'</span></div>'; }
+function cerrarDrawer(){ document.getElementById("scrim").classList.remove("open"); }
+document.getElementById("scrim").onclick=function(e){ if(e.target.id==="scrim") cerrarDrawer(); };
+
+function cambiarLev(o,nuevo){
+  o.levantamiento=nuevo;
+  if(nuevo==="levantado"){ o.evidencia_lev=true; o.soma_rechazo=false; }
+  if(nuevo==="pendiente"){ o.evidencia_lev=false; }
+  enviarCambio(o);
+  cerrarDrawer(); refrescar();
+  toast(nuevo==="levantado"?"Observación marcada como levantada ✓":"Observación reabierta","ok");
+}
+function aprobarSSOMA(o){
+  o.levantamiento="levantado"; o.soma_rechazo=false;
+  enviarAccion("aprobar_levantamiento",o);
+  cerrarDrawer(); refrescar(); toast("Levantamiento aprobado y validado por SSOMA ✓","ok");
+}
+function rechazarSSOMA(o){
+  var motivo=prompt("Motivo del rechazo (se enviará al jefe de área y se eliminará la evidencia de Drive):", o.mensaje_ssoma||"");
+  if(motivo===null) return;   // canceló
+  o.levantamiento="rechazado"; o.soma_rechazo=true; o.evidencia_lev=false; o.evidencia_url=""; o.mensaje_ssoma=motivo;
+  enviarAccion("rechazar_levantamiento",o,{texto:motivo});
+  cerrarDrawer(); refrescar(); toast("Evidencia rechazada y eliminada de Drive 🚫","bad");
+}
+function guardarMensaje(o,rol){
+  var ta=document.getElementById("aMsg"); if(!ta) return;
+  var txt=ta.value.trim();
+  if(rol==="ssoma") o.mensaje_ssoma=txt; else o.mensaje_jefe=txt;
+  enviarAccion("guardar_mensaje",o,{rol:rol,texto:txt});
+  abrirDrawer(o.id);   // refresca el drawer mostrando el mensaje en el hilo
+  toast(rol==="ssoma"?"Indicación enviada al jefe ✉":"Mensaje enviado a SSOMA ✉","ok");
+}
+function enviarAccion(action,o,extra){
+  if(APP.demo || !CONFIG.ENDPOINT_URL) return;
+  var body={action:action,id:o.id};
+  if(extra){ for(var k in extra){ body[k]=extra[k]; } }
+  fetch(CONFIG.ENDPOINT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify(body)}).catch(function(){});
+}
+// Flujo combinado del jefe: adjunta la evidencia + el comentario y los envía juntos.
+function enviarLevantamiento(o){
+  var fi=document.getElementById("aFile"), ta=document.getElementById("aMsg");
+  var files=fi?fi.files:null, msg=ta?ta.value.trim():"";
+  if((!files||!files.length) && !msg){ toast("Adjunta una evidencia o escribe un comentario.","bad"); return; }
+  if(msg) o.mensaje_jefe=msg;
+  if(APP.demo || !CONFIG.ENDPOINT_URL){   // demo: simula
+    if(files && files.length){ o.evidencia_lev=true; o.levantamiento="en_proceso"; o.soma_rechazo=false; }
+    cerrarDrawer(); refrescar(); toast("Enviado (demo) 📤","ok"); return;
+  }
+  if(files && files.length){
+    procesarArchivos(o, files, msg);      // sube archivo(s) + comentario juntos
+  } else {
+    enviarAccion("guardar_mensaje",o,{rol:"jefe",texto:msg});
+    cerrarDrawer(); refrescar(); toast("Comentario enviado a SSOMA ✉","ok");
+  }
+}
+function procesarArchivos(o, files, comentario){
+  if(!files || !files.length) return;
+  toast("Enviando "+files.length+" archivo(s) a Drive…","");
+  var pend=files.length;
+  Array.prototype.forEach.call(files,function(f){
+    leerArchivo(f,function(base64,mime,nombre){
+      var body={action:"subir_evidencia_levantamiento",id:o.id,area:o.area,fecha:o.fecha,nombre:nombre,mime:mime,contenido:base64};
+      if(comentario) body.mensaje_jefe=comentario;
+      fetch(CONFIG.ENDPOINT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})
+        .catch(function(){})
+        .finally(function(){
+          if(--pend===0){
+            o.evidencia_lev=true; o.levantamiento="en_proceso"; o.soma_rechazo=false;  // re-subir reabre la revisión
+            cerrarDrawer(); refrescar();
+            toast("✓ Evidencia"+(comentario?" + comentario":"")+" enviada a SSOMA","ok");
+          }
+        });
+    });
+  });
+}
+// Lee el archivo a base64. Comprime imágenes; los PDF/otros van tal cual.
+function leerArchivo(f,cb){
+  var r=new FileReader();
+  if(/^image\//.test(f.type)){
+    r.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        var max=1600,w=img.width,h=img.height;
+        if(w>max||h>max){ if(w>=h){h=Math.round(h*max/w);w=max;} else {w=Math.round(w*max/h);h=max;} }
+        var c=document.createElement("canvas"); c.width=w; c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        var data=c.toDataURL("image/jpeg",0.72);
+        cb((data.split(",")[1]||""),"image/jpeg",(f.name||"evidencia").replace(/\.[^.]+$/,"")+".jpg");
+      };
+      img.onerror=function(){ cb((String(e.target.result).split(",")[1]||""), f.type||"application/octet-stream", f.name||"evidencia"); };
+      img.src=e.target.result;
+    };
+    r.readAsDataURL(f);
+  } else {
+    r.onload=function(e){ cb((String(e.target.result).split(",")[1]||""), f.type||"application/pdf", f.name||"documento.pdf"); };
+    r.readAsDataURL(f);
+  }
+}
+// Abre la carpeta de evidencias en Drive (o una búsqueda si no se configuró la URL raíz).
+function abrirDrive(o){
+  // Abre directamente el archivo de evidencia si ya existe (evita confundir documentos entre áreas).
+  if(o && o.evidencia_url){ window.open(o.evidencia_url,"_blank","noopener"); return; }
+  var url=CONFIG.DRIVE_EVIDENCIAS_URL
+    ? CONFIG.DRIVE_EVIDENCIAS_URL
+    : "https://drive.google.com/drive/search?q="+encodeURIComponent("Evidencias Levantamiento "+(o?o.fecha:""));
+  window.open(url,"_blank","noopener");
+}
+function enviarCambio(o){
+  if(APP.demo || !CONFIG.ENDPOINT_URL) return; // en demo solo estado local
+  fetch(CONFIG.ENDPOINT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify({action:"actualizar_levantamiento",id:o.id,levantamiento:o.levantamiento,evidencia_lev:o.evidencia_lev})}).catch(function(){});
+}
+
+/* ============================================================
+   VISTA: EVIDENCIAS  (carpetas fechadas)
+   ============================================================ */
+function renderEvidencias(){
+  var d=datosArea().filter(function(o){return o.evidencia_lev;});
+  var porFolder={};
+  d.forEach(function(o){ (porFolder[o.fecha]=porFolder[o.fecha]||[]).push(o); });
+  var fechas=Object.keys(porFolder).sort().reverse();
+  var cont=document.getElementById("folders");
+  if(!fechas.length){ cont.innerHTML=emptyChart("Aún no hay evidencias de levantamiento cargadas."); return; }
+  cont.innerHTML=fechas.map(function(f){
+    var arr=porFolder[f], lev=arr.filter(function(o){return o.levantamiento==="levantado";}).length;
+    var rech=arr.filter(function(o){return o.soma_rechazo;}).length;
+    return '<div class="folder" data-f="'+f+'">'+
+      '<div class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>'+
+      '<b>'+f+'</b><span>'+arr.length+' evidencia(s)</span>'+
+      '<div class="fcount"><span class="pill ok">'+lev+' validadas</span>'+
+        (rech?'<span class="pill bad">'+rech+' rechazadas</span>':'')+'</div></div>';
+  }).join("");
+  cont.querySelectorAll(".folder").forEach(function(el){
+    el.onclick=function(){
+      if(CONFIG.DRIVE_EVIDENCIAS_URL) window.open(CONFIG.DRIVE_EVIDENCIAS_URL,"_blank");
+      else toast("Carpeta Drive: Evidencias Levantamiento/"+el.dataset.f+" · configura DRIVE_EVIDENCIAS_URL","bad");
+    };
+  });
+}
+
+/* ============================================================
+   VISTA: ANÁLISIS
+   ============================================================ */
+function renderAnalisis(){
+  var d=datosArea();
+  // top ítems
+  var porItem={};
+  d.forEach(function(o){ porItem[o.item]=(porItem[o.item]||0)+1; });
+  var top=Object.keys(porItem).map(function(k){return {label:k,value:porItem[k]};})
+    .sort(function(a,b){return b.value-a.value;}).slice(0,10);
+  document.getElementById("topItems").innerHTML=top.length?hBars(top):emptyChart("Sin datos");
+
+  // por cuadrilla
+  var porCuad={};
+  d.forEach(function(o){ porCuad["N° "+o.cuadrilla]=(porCuad["N° "+o.cuadrilla]||0)+1; });
+  var cuadData=Object.keys(porCuad).map(function(k){return {label:k,short:k,value:porCuad[k],color:"#7c3aed"};})
+    .sort(function(a,b){return b.value-a.value;}).slice(0,12);
+  document.getElementById("cuadChart").innerHTML=barChart(cuadData);
+
+  // heatmap sección x estado(levantamiento)
+  var estados=["pendiente","en_proceso","levantado","rechazado"];
+  var matrix={};
+  SECCIONES.forEach(function(s){ matrix[s]={}; estados.forEach(function(e){matrix[s][e]=0;}); });
+  d.forEach(function(o){ if(matrix[o.seccion]) matrix[o.seccion][o.levantamiento]++; });
+  var maxC=1; SECCIONES.forEach(function(s){estados.forEach(function(e){maxC=Math.max(maxC,matrix[s][e]);});});
+  var hm='<table style="width:100%;border-collapse:separate;border-spacing:4px">';
+  hm+='<tr><th style="text-align:left;font-size:11px;color:#94a3b8;padding:4px 8px"></th>'+
+    estados.map(function(e){return '<th style="font-size:11px;color:#64748b;font-weight:700;padding:4px">'+EST_LEV[e].label+'</th>';}).join("")+'</tr>';
+  SECCIONES.forEach(function(s){
+    if(!d.some(function(o){return o.seccion===s;})) return;
+    hm+='<tr><td style="font-size:12px;font-weight:600;color:#334155;padding:4px 8px;white-space:nowrap">'+s+'</td>'+
+      estados.map(function(e){
+        var v=matrix[s][e], a=v?(0.18+0.82*v/maxC):0;
+        var base=e==="rechazado"?"220,38,38":e==="levantado"?"22,163,74":e==="en_proceso"?"2,132,199":"148,163,184";
+        return '<td style="text-align:center;border-radius:8px;padding:10px 4px;font-weight:700;font-size:13px;'+
+          'background:rgba('+base+','+a.toFixed(2)+');color:'+(a>0.5?"#fff":"#334155")+'">'+(v||"")+'</td>';
+      }).join("")+'</tr>';
+  });
+  hm+='</table>';
+  document.getElementById("heatmap").innerHTML=hm;
+
+  // comparación entre áreas (solo SSOMA viendo todas)
+  var cmp=document.getElementById("areaCompare");
+  if(APP.user.area==="*" && APP.areaActiva==="__ALL__"){
+    cmp.style.display="grid";
+    cmp.innerHTML=areasPresentes().map(function(a){
+      var da=baseDatos().filter(function(o){return o.area===a;});
+      var lev=da.filter(function(o){return o.levantamiento==="levantado";}).length;
+      var av=da.length?Math.round(lev/da.length*100):0;
+      return '<div class="card"><div class="cb"><div style="font-size:12px;color:#64748b;font-weight:700;min-height:32px">'+a+'</div>'+
+        '<div style="display:flex;align-items:baseline;gap:8px;margin:8px 0 6px"><b style="font-size:26px">'+av+'%</b><span style="font-size:12px;color:#64748b">avance</span></div>'+
+        '<div class="lev-bar"><i style="width:'+av+'%"></i></div>'+
+        '<div style="font-size:12px;color:#64748b;margin-top:8px">'+da.length+' obs · '+lev+' levantadas</div></div></div>';
+    }).join("");
+  } else { cmp.style.display="none"; cmp.innerHTML=""; }
+}
+
+/* ============================================================
+   VISTA: ATS · CHARLA DE 5 MIN
+   ============================================================ */
+// Áreas para las que hay jefes en el roster (demo o real). Cada jefe verá datos demo de su área.
+function areasDelRoster(){
+  var s={}, out=[];
+  (typeof ROSTER!=="undefined"?ROSTER:[]).forEach(function(u){
+    var a=u.area; if(a && a!=="*" && !s[norm(a)]){ s[norm(a)]=1; out.push(a); }
+  });
+  return out.length?out:AREAS;   // respaldo a las áreas demo si el roster está vacío
+}
+// Datos demo del llenado de ATS / Charla (últimos 30 días, sin domingos), por área del roster.
+function generarDemoAts(){
+  var rnd=seedRand(29), out=[], hoy=new Date(); hoy.setHours(0,0,0,0);
+  var areas=areasDelRoster();
+  var clientes=["CLARO","ENTEL","BITEL","MOVISTAR","WIN PERÚ","AMÉRICA MÓVIL"];
+  for(var back=29; back>=0; back--){
+    var d=new Date(hoy); d.setDate(hoy.getDate()-back);
+    if(d.getDay()===0) continue; // sin domingos
+    areas.forEach(function(area,ai){
+      var nCuad=1+Math.floor(rnd()*3);           // 1-3 cuadrillas activas ese día
+      for(var c=0;c<nCuad;c++){
+        var cuad=10+ai*4+c;
+        var cli=clientes[Math.floor(rnd()*clientes.length)];
+        var circ="Circuito "+pad(1+Math.floor(rnd()*12));
+        if(rnd()<0.92) out.push({tipo:"ATS",cliente:cli,circuito:circ,fecha:fechaISO(d),cuadrilla:String(cuad),area:area,division:area,archivos:1+Math.floor(rnd()*3),folder:"",recibido:fechaISO(d)});
+        if(rnd()<0.60) out.push({tipo:"Charla-5min",cliente:cli,circuito:circ,fecha:fechaISO(d),cuadrilla:String(cuad),area:area,division:area,archivos:1,folder:"",recibido:fechaISO(d)});
+      }
+    });
+  }
+  return out;
+}
+// Registros del área activa (jefe: su área; SSOMA: según selector), filtrados por período.
+function datosAts(){
+  if(!APP.user) return [];
+  var base=APP.ats.slice();
+  if(APP.user.area==="*"){
+    if(APP.areaActiva && APP.areaActiva!=="__ALL__"){ var aa=norm(APP.areaActiva); base=base.filter(function(o){return norm(o.area)===aa;}); }
+  } else {
+    var a=norm(APP.user.area); base=base.filter(function(o){return norm(o.area)===a;});
+  }
+  var per=APP.filtrosAts.periodo;
+  if(per==="7"||per==="30"){
+    var lim=new Date(); lim.setHours(0,0,0,0); lim.setDate(lim.getDate()-(+per));
+    base=base.filter(function(o){ var dt=new Date(o.fecha+"T00:00:00"); return !isNaN(dt) && dt>=lim; });
+  }
+  return base;
+}
+function renderAts(){
+  var d=datosAts();
+  var nATS=d.filter(function(o){return o.tipo==="ATS";}).length;
+  var nCharla=d.filter(function(o){return o.tipo==="Charla-5min";}).length;
+  var cuadSet={}; d.forEach(function(o){ cuadSet[o.area+"#"+o.cuadrilla]=1; });
+  var nCuad=Object.keys(cuadSet).length;
+  var docs=d.reduce(function(a,o){return a+(o.archivos||1);},0);
+  var hoyISO=fechaISO(new Date());
+  var hoyN=d.filter(function(o){return o.fecha===hoyISO;}).length;
+
+  document.getElementById("kpisAts").innerHTML=[
+    kpi("#e0f2fe","#0369a1",iconClip(),d.length,"Registros totales",null,null),
+    kpi("#e0f2fe","#0369a1",iconDoc(),nATS,"ATS",null,null),
+    kpi("#ede9fe","#6d28d9",iconChat(),nCharla,"Charlas de 5 min",null,null),
+    kpi("#dcfce7","#15803d",iconUsers(),nCuad,"Cuadrillas activas",null,null),
+    kpi("#fef3c7","#b45309",iconLayers(),docs,"Documentos subidos",null,null),
+    kpi("#e0f2fe","#0369a1",iconClock(),hoyN,"Registros hoy",null,null)
+  ].join("");
+
+  // tendencia de llenado por fecha
+  var porFecha={}; d.forEach(function(o){ porFecha[o.fecha]=(porFecha[o.fecha]||0)+1; });
+  var fechas=Object.keys(porFecha).sort();
+  document.getElementById("atsTrendChart").innerHTML=fechas.length?lineChart(fechas.map(function(f){return {x:fechaCorta(f),y:porFecha[f]};})):emptyChart("Sin registros en el período");
+  document.getElementById("atsTrendSub").textContent=fechas.length+" día(s) con registros";
+
+  // ATS vs Charla
+  document.getElementById("atsTipoChart").innerHTML=donut(
+    [{label:"ATS",value:nATS,color:"#0284c7"},{label:"Charla 5 min",value:nCharla,color:"#7c3aed"}],
+    d.length,"registros");
+
+  // registros por cuadrilla
+  var porCuad={}; d.forEach(function(o){ var k="N° "+o.cuadrilla; porCuad[k]=(porCuad[k]||0)+1; });
+  var cuadData=Object.keys(porCuad).map(function(k){return {label:k,short:k,value:porCuad[k],color:"#0284c7"};})
+    .sort(function(a,b){return b.value-a.value;}).slice(0,12);
+  document.getElementById("atsCuadChart").innerHTML=cuadData.length?barChart(cuadData):emptyChart("Sin datos");
+
+  // cumplimiento por cuadrilla: % de días con ATS + Charla el mismo día
+  var perCuad={};
+  d.forEach(function(o){
+    var pc=perCuad[o.cuadrilla]||(perCuad[o.cuadrilla]={dias:{}});
+    var dd=pc.dias[o.fecha]||(pc.dias[o.fecha]={ats:false,ch:false});
+    if(o.tipo==="ATS") dd.ats=true; else dd.ch=true;
+  });
+  var cumpl=Object.keys(perCuad).map(function(k){
+    var dias=perCuad[k].dias, tot=0, both=0;
+    for(var f in dias){ tot++; if(dias[f].ats&&dias[f].ch) both++; }
+    return {cuad:k, tot:tot, both:both, pct: tot?Math.round(both/tot*100):0};
+  }).sort(function(a,b){return b.pct-a.pct || b.tot-a.tot;}).slice(0,12);
+  document.getElementById("atsCumpl").innerHTML=cumpl.length
+    ? '<div style="display:flex;flex-direction:column;gap:11px">'+cumpl.map(function(r){
+        return '<div><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px">'+
+          '<span style="font-weight:600;color:#334155">N° '+esc(r.cuad)+'</span>'+
+          '<b class="tnum">'+r.pct+'% <span style="color:#94a3b8;font-weight:600">('+r.both+'/'+r.tot+' días)</span></b></div>'+
+          '<div class="lev-bar"><i style="width:'+r.pct+'%"></i></div></div>';
+      }).join("")+'</div>'
+    : emptyChart("Sin datos");
+
+  // comparativo por área (solo SSOMA viendo todas)
+  var cmp=document.getElementById("atsAreaCompare");
+  if(APP.user.area==="*" && APP.areaActiva==="__ALL__"){
+    var byArea={}; d.forEach(function(o){ (byArea[o.area]=byArea[o.area]||[]).push(o); });
+    var keys=Object.keys(byArea).sort();
+    cmp.style.display=keys.length?"grid":"none";
+    cmp.innerHTML=keys.map(function(a){
+      var da=byArea[a], ats=da.filter(function(o){return o.tipo==="ATS";}).length, ch=da.filter(function(o){return o.tipo==="Charla-5min";}).length;
+      var cs={}; da.forEach(function(o){cs[o.cuadrilla]=1;});
+      return '<div class="card"><div class="cb"><div style="font-size:12px;color:#64748b;font-weight:700;min-height:32px">'+esc(a)+'</div>'+
+        '<div style="display:flex;align-items:baseline;gap:8px;margin:8px 0 6px"><b style="font-size:26px">'+da.length+'</b><span style="font-size:12px;color:#64748b">registros</span></div>'+
+        '<div class="legend" style="gap:10px"><i><span class="sw" style="background:#0284c7"></span>ATS <b style="margin-left:3px">'+ats+'</b></i>'+
+        '<i><span class="sw" style="background:#7c3aed"></span>Charla <b style="margin-left:3px">'+ch+'</b></i></div>'+
+        '<div style="font-size:12px;color:#64748b;margin-top:8px">'+Object.keys(cs).length+' cuadrilla(s) activas</div></div></div>';
+    }).join("");
+  } else { cmp.style.display="none"; cmp.innerHTML=""; }
+
+  renderAtsTabla(d);
+}
+function renderAtsTabla(d){
+  var f=APP.filtrosAts, isSSOMA=APP.user && APP.user.area==="*";
+  var th=document.getElementById("atsThArea"); if(th) th.style.display=isSSOMA?"":"none";
+  var rows=d.filter(function(o){
+    if(f.tipo && o.tipo!==f.tipo) return false;
+    if(f.q){ var q=norm(f.q); if(norm(o.cliente+" "+o.circuito+" "+o.cuadrilla+" "+o.area+" "+o.tipo).indexOf(q)<0) return false; }
+    return true;
+  }).sort(function(a,b){ return a.fecha<b.fecha?1:(a.fecha>b.fecha?-1:0); }).slice(0,300);
+  document.getElementById("atsCount").textContent=rows.length+" registro(s)";
+  var body=document.getElementById("atsBody");
+  if(!rows.length){ body.innerHTML='<tr><td colspan="7"><div class="empty-state"><div class="em">📭</div>Sin registros con estos filtros.</div></td></tr>'; return; }
+  body.innerHTML=rows.map(function(o){
+    var tp=o.tipo==="ATS"?'<span class="pill info">ATS</span>':'<span class="pill purple">Charla 5 min</span>';
+    return '<tr'+(o.folder?' data-url="'+esc(o.folder)+'" title="Abrir carpeta en Drive"':'')+'>'+
+      '<td class="tnum">'+fechaCorta(o.fecha)+'</td>'+
+      '<td>'+tp+'</td>'+
+      '<td><b>'+esc(o.cliente||"—")+'</b></td>'+
+      '<td>'+esc(o.circuito||"—")+'</td>'+
+      '<td><b>N° '+esc(o.cuadrilla)+'</b></td>'+
+      (isSSOMA?'<td style="font-size:12px;font-weight:600;color:#075985;white-space:normal;max-width:150px;line-height:1.25">'+esc(o.area)+'</td>':'')+
+      '<td class="tnum">'+(o.archivos||1)+'</td>'+
+      '</tr>';
+  }).join("");
+  body.querySelectorAll("tr[data-url]").forEach(function(tr){ tr.style.cursor="pointer"; tr.onclick=function(){ window.open(tr.dataset.url,"_blank","noopener"); }; });
+}
+document.getElementById("searchAts").oninput=function(){ APP.filtrosAts.q=this.value; renderAtsTabla(datosAts()); };
+document.getElementById("fTipoAts").onchange=function(){ APP.filtrosAts.tipo=this.value; renderAtsTabla(datosAts()); };
+document.getElementById("fPeriodoAts").onchange=function(){ APP.filtrosAts.periodo=this.value; renderAts(); };
+
+function iconDoc(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>';}
+function iconChat(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-9 8.4 9 9 0 0 1-3.8-.8L3 21l1.9-4.2A8.38 8.38 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5z"/></svg>';}
+function iconUsers(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>';}
+function iconLayers(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 5-9 5-9-5 9-5z"/><path d="M3 12l9 5 9-5M3 17l9 5 9-5"/></svg>';}
+
+/* ============================================================
+   BOTÓN UNIVERSAL: FORMATO DE ENTREGA DE EPP
+   ============================================================ */
+function descargarEPP(){
+  var url=CONFIG.FORMATO_EPP_URL;
+  if(!url){ toast("Configura CONFIG.FORMATO_EPP_URL con tu archivo oficial.","bad"); return; }
+  window.open(url,"_blank","noopener");   // abre el formato imprimible en una pestaña nueva
+  toast("Abriendo formato de entrega de EPP 📄","ok");
+}
+document.getElementById("eppTop").onclick=descargarEPP;
+document.getElementById("eppSide").onclick=descargarEPP;
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+var toastTimer;
+function toast(msg,type){
+  var t=document.getElementById("toast"); t.textContent=msg; t.className="toast show "+(type||"");
+  clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.className="toast "+(type||""); },3200);
+}
+
+/* ===== iconos KPI ===== */
+function iconClip(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';}
+function iconWarn(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>';}
+function iconX(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>';}
+function iconCheck(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>';}
+function iconClock(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';}
+function iconBan(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>';}
+
+/* ===== init ===== */
+rosterReady = cargarRoster();
+</script>
+</body>
+</html>

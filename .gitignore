@@ -1,0 +1,7 @@
+# Configuración local de Claude Code (no forma parte del panel)
+.claude/
+
+# Basura del sistema operativo
+Thumbs.db
+.DS_Store
+desktop.ini
