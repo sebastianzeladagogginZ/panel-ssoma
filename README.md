@@ -137,9 +137,13 @@ Vive en [`Correos_ATS_Charla.gs`](Correos_ATS_Charla.gs) (se agrega al mismo pro
 
 **Ruteo por área.** La app de campo guarda un *ÁREA amplia* + una *División*; el correo agrupa por
 `ÁREA ▸ División` (igual que `mapArea()` del panel) y empareja cada grupo con los jefes cuya `area`
-coincida con la clave completa, con el área amplia **o con la división** (así el jefe
-`NORMALIZACIÓN DE RED` recibe la división `Normalización de Red`). Para casos que no calcen, usa el
-mapa `OVERRIDE_AREA`. Un área sin jefe con correo no se pierde: aparece igual en el resumen de SSOMA.
+coincida con la clave completa, con el área amplia **o con la división**. Para casos que no calcen, usa
+el mapa `OVERRIDE_AREA`. Un área sin jefe con correo no se pierde: aparece igual en el resumen de SSOMA.
+
+> ✅ **Verificado contra la hoja `Jefes` real:** su columna `area` ya usa el formato `ÁREA ▸ División`,
+> que calza **1:1** con el catálogo de la app ATS. Las **11 combinaciones** de área/división rutean a un
+> jefe real (**0 huérfanas**) y el equipo SSOMA resuelve a las filas con `area = *`. **No se necesita
+> ningún `OVERRIDE_AREA`.** Las áreas con Jefe de Área *y* Jefe de División reciben a ambos.
 
 **Puesta en marcha (una sola vez, desde el editor de Apps Script):**
 

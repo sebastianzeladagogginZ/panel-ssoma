@@ -69,16 +69,13 @@ var CFG_CORREO_ATS = {
     // "PLANTA EXTERNA ▸ ON Negocios": "ON NEGOCIOS INSTALACIONES",
   },
 
-  // Roster de respaldo si la hoja "Jefes" está vacía o no existe (modo demo).
-  // Sembrado con los usuarios de index.html; edítalo o deja que mande la hoja "Jefes".
-  ROSTER_FALLBACK: [
-    { area: "ON NEGOCIOS INSTALACIONES",     nombre: "Jorge Rondón Díaz",    correo: "jrondon@optical-infra.pe",   rol: "Jefe de Área" },
-    { area: "NORMALIZACIÓN DE RED",          nombre: "Julio Chávez Bravo",   correo: "jchavez@optical-infra.pe",   rol: "Jefe de Área" },
-    { area: "MANTENIMIENTO ON NEGOCIOS",     nombre: "José Figueroa León",   correo: "jfigueroal@optical-infra.pe",rol: "Jefe de Área" },
-    { area: "MANTENIMIENTO MANGAS CRITICAS", nombre: "Juan Anca Quispe",     correo: "janca@optical-infra.pe",     rol: "Jefe de Área" },
-    { area: "INSTALACIÓN DE PLANTA EXTERNA", nombre: "Jesús Huasacca Roca",  correo: "jhuasacca@optical-infra.pe", rol: "Jefe de Área" },
-    { area: "*",                             nombre: "Gabriela Abad Torres", correo: "gabad@optical-infra.pe",     rol: "SSOMA · Todas las áreas" }
-  ],
+  // Roster de respaldo SOLO si la hoja "Jefes" está vacía o no se pudo leer.
+  // La fuente de verdad es la hoja "Jefes" (se lee en vivo): su columna `area` usa
+  // el formato "ÁREA ▸ División", que calza 1:1 con el catálogo de la app ATS, así
+  // que el ruteo funciona sin tocar esto. Se deja VACÍO a propósito: si algún día la
+  // hoja no carga, es preferible NO enviar (y avisar en el log) que mandar correos a
+  // direcciones obsoletas. Para un modo demo, agrega aquí filas {area,nombre,correo,rol}.
+  ROSTER_FALLBACK: [],
 
   // (Opcional) URL pública del Panel SSOMA para el botón «Abrir el panel» del correo.
   // Vacío = sin botón.
@@ -124,6 +121,15 @@ function _correosPendientesATS(dryRun) {
   var hoyTxt     = _fechaLarga(new Date());
   var resumen    = { fecha: hoyTxt, totalPendientes: pendientes.length, areasEnviadas: 0,
                      correosEnviados: 0, sinDestinatario: [], errores: [], dryRun: !!dryRun };
+
+  // Fail-safe: hay pendientes pero el roster (hoja "Jefes") vino vacío → no se enviará
+  // nada. Se avisa en vez de fallar en silencio (evita creer que "todo está al día").
+  if (pendientes.length && !roster.length) {
+    var av = "Hay " + pendientes.length + " pendientes pero la hoja «Jefes» no devolvió destinatarios; " +
+             "no se enviarán correos. Revisa que la hoja tenga filas con correo (o ROSTER_FALLBACK).";
+    resumen.errores.push(av);
+    Logger.log("⚠ " + av);
+  }
 
   // Cuántos correos vamos a mandar (para avisar si la cuota de Gmail no alcanza).
   var porEnviar = 0;
