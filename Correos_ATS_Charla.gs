@@ -303,11 +303,32 @@ function _leerJefes() {
       Logger.log("⚠ No se pudo leer Jefes por ID (" + CFG_CORREO_ATS.JEFES_SHEET_ID + "): " + e);
     }
   }
+  // 2) Reutiliza el roster del backend del panel SI existe, sea cual sea su nombre
+  //    (_rosterJefes en unas versiones, _obtenerJefes en otras). Guardado con typeof
+  //    para no romper si la función no está definida en este proyecto. Best-effort:
+  //    si el backend también lee la hoja activa y el proyecto es standalone, vendrá
+  //    vacío → por eso el camino confiable es (1) por ID.
   try {
-    var jefes = (_obtenerJefes() || {}).jefes || [];   // hoja activa (Panel_Backend.gs)
+    var crudo = null;
+    if (typeof _rosterJefes === "function")       crudo = _rosterJefes();
+    else if (typeof _obtenerJefes === "function") crudo = _obtenerJefes();
+    var jefes = _comoListaJefes(crudo);
     if (jefes.length) return jefes;
-  } catch (e2) {}
+  } catch (e2) { Logger.log("⚠ Roster del backend no utilizable: " + e2); }
+
+  // 3) Respaldo configurado (normalmente vacío).
   return CFG_CORREO_ATS.ROSTER_FALLBACK || [];
+}
+
+// Acepta lo que devuelva el backend: {jefes:[...]} o directamente [...] de objetos
+// {area,nombre,dni,correo,rol}. Devuelve siempre una lista normalizada.
+function _comoListaJefes(x) {
+  var arr = !x ? [] : (Array.isArray(x) ? x : (Array.isArray(x.jefes) ? x.jefes : []));
+  return arr.map(function (j) {
+    return { area:   String(j.area   || "").trim(), nombre: String(j.nombre || "").trim(),
+             dni:    String(j.dni    || "").trim(), correo: String(j.correo || "").trim(),
+             rol:    String(j.rol    || "").trim() };
+  });
 }
 
 // Convierte la pestaña "Jefes" (area | nombre | dni | correo | rol) en objetos.
