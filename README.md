@@ -115,6 +115,46 @@ Igual que el SEG-F-010: arrastra esta carpeta a Netlify (o `netlify deploy`). Es
 > el `index.html` de la raíz, **vuelve a copiarlo** a `netlify_deploy/` antes de desplegar
 > (`cp index.html netlify_deploy/index.html`) para que los cambios lleguen a producción.
 
+### 7. Correo diario de ATS y Charlas **pendientes de aprobar** (09:00)
+
+Réplica del esquema de correos que ya se envían a las áreas sobre sus observaciones, pero **exclusivo
+para el estado _Pendiente (de aprobar)_ de los llenados de ATS y Charla de 5 minutos**. Se manda
+**todos los días a las 9:00 a. m.**:
+
+- **A cada área** → sólo sus registros de ATS/Charla pendientes de aprobar.
+- **Al equipo SSOMA** → un resumen consolidado con todas las áreas.
+
+Vive en [`Correos_ATS_Charla.gs`](Correos_ATS_Charla.gs) (se agrega al mismo proyecto Apps Script del
+`Panel_Backend.gs`; reutiliza sus utilidades). No añade endpoints: lo dispara un **trigger horario**.
+
+**De dónde salen los datos (nada que duplicar):**
+
+| Qué | De dónde |
+|---|---|
+| Pendientes (ATS/Charla) | Hoja **`Registros`** de la app ATS (`LOG_SHEET_ID`), columna **`Estado` = `Pendiente`** — la misma que alimenta la pestaña *ATS · Charla 5 min* del panel |
+| Destinatarios por área | Hoja **`Jefes`** (`area \| nombre \| dni \| correo \| rol`), la misma del login |
+| Equipo SSOMA | Los `Jefes` con `area = *` o `rol` que contenga **SSOMA**, más los de `EXTRA_SSOMA` |
+
+**Ruteo por área.** La app de campo guarda un *ÁREA amplia* + una *División*; el correo agrupa por
+`ÁREA ▸ División` (igual que `mapArea()` del panel) y empareja cada grupo con los jefes cuya `area`
+coincida con la clave completa, con el área amplia **o con la división** (así el jefe
+`NORMALIZACIÓN DE RED` recibe la división `Normalización de Red`). Para casos que no calcen, usa el
+mapa `OVERRIDE_AREA`. Un área sin jefe con correo no se pierde: aparece igual en el resumen de SSOMA.
+
+**Puesta en marcha (una sola vez, desde el editor de Apps Script):**
+
+1. Revisa el bloque **`CFG_CORREO_ATS`** (sobre todo `LOG_SHEET_ID`; y si hace falta `EXTRA_SSOMA`,
+   `OVERRIDE_AREA`, `PANEL_URL`).
+2. Ejecuta **`previewCorreosPendientesATS()`** → **no envía**; escribe en el *Registro de ejecución* a
+   quién le llegaría cada correo. Autoriza los permisos de Gmail/Hojas cuando lo pida.
+3. *(Opcional)* **`enviarCorreosPendientesATSAhora()`** para una prueba real inmediata.
+4. **`crearTriggerCorreosPendientesATS()`** → programa el envío diario a las 09:00.
+
+> ⏰ El «09:00» usa la **zona horaria del proyecto**. Ponla en *Configuración del proyecto → Zona
+> horaria* = **(GMT-05:00) America/Lima**. Para pausar los envíos: `borrarTriggerCorreosPendientesATS()`.
+> Por defecto, un área sin pendientes **no** recibe correo (sin ruido); el resumen a SSOMA sólo se
+> manda cuando hay pendientes, salvo que pongas `ENVIAR_SSOMA_SI_VACIO: true`.
+
 ## Cómo funcionan las integraciones
 
 - **Drive (carpetas fechadas):** al subir evidencia de un levantamiento, el backend la guarda en
@@ -124,6 +164,10 @@ Igual que el SEG-F-010: arrastra esta carpeta a Netlify (o `netlify deploy`). Es
   `GMAIL_QUERY_RECHAZO`, extrae el ID de observación/inspección del asunto o cuerpo, **manda la evidencia
   a la papelera de Drive** y marca la observación como `rechazado` (vuelve a quedar pendiente).
   Ajusta `GMAIL_QUERY_RECHAZO` al remitente/asunto real con que SOMA notifica los rechazos.
+- **Gmail (correo diario ATS/Charla):** `enviarCorreosPendientesATS()` corre cada día a las 09:00
+  (trigger de `Correos_ATS_Charla.gs`), lee la hoja `Registros` (Estado = `Pendiente`) y envía a cada
+  área sus ATS/Charlas pendientes de aprobar y un resumen consolidado al equipo SSOMA. Ver
+  «7. Correo diario de ATS y Charlas pendientes de aprobar».
 
 ## Nota de seguridad
 El login (área + DNI) es el solicitado para uso **interno**. Como el área se elige de una lista, el DNI del
