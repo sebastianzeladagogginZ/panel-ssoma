@@ -87,6 +87,18 @@ var CFG_CORREO_ATS = {
   // Nombre remitente visible en el correo.
   REMITENTE: "SSOMA · ON Infraestructura",
 
+  // A partir de cuántos días pendiente se resalta la fila en rojo (nudge de antigüedad).
+  DIAS_ALERTA: 3,
+
+  // Tope de filas por correo (evita correos gigantes si un área acumula mucho).
+  // Si se supera, la tabla muestra las más antiguas y agrega «… y N más».
+  MAX_FILAS: 80,
+
+  // Auditoría: registra cada corrida en una pestaña del MISMO libro de "Registros"
+  // (fecha, pendientes, correos enviados, errores). Ponlo en false para no escribir nada.
+  REGISTRAR_ENVIOS: true,
+  HOJA_LOG_ENVIOS: "Correos enviados",
+
   // Paleta (igual que el panel / SEG-F-010).
   COLOR_NAVY: "#0c4a6e", COLOR_CELESTE: "#0284c7", COLOR_SLATE: "#f1f5f9"
 };
@@ -110,10 +122,17 @@ function _correosPendientesATS(dryRun) {
   var roster     = _rosterDestinatarios();               // [{area,nombre,correo,rol}]
   var ssoma      = _destinatariosSSOMA(roster);          // [correos]
   var hoyTxt     = _fechaLarga(new Date());
-  var resumen    = { fecha: hoyTxt, totalPendientes: pendientes.length, areasEnviadas: 0, correosEnviados: 0, sinDestinatario: [], dryRun: !!dryRun };
+  var resumen    = { fecha: hoyTxt, totalPendientes: pendientes.length, areasEnviadas: 0,
+                     correosEnviados: 0, sinDestinatario: [], errores: [], dryRun: !!dryRun };
+
+  // Cuántos correos vamos a mandar (para avisar si la cuota de Gmail no alcanza).
+  var porEnviar = 0;
+  Object.keys(grupos).forEach(function (a) { if (grupos[a].length && _correosDeArea(roster, a).length) porEnviar++; });
+  if (ssoma.length && (pendientes.length > 0 || CFG_CORREO_ATS.ENVIAR_SSOMA_SI_VACIO)) porEnviar++;
+  if (!dryRun) _verificarCuota(porEnviar, resumen);
 
   // ── 1) Un correo por ÁREA con sus pendientes ──────────────────
-  Object.keys(grupos).forEach(function (areaKey) {
+  Object.keys(grupos).sort().forEach(function (areaKey) {
     var regs = grupos[areaKey];
     if (!regs.length) return;
     var destinos = _correosDeArea(roster, areaKey);
@@ -122,11 +141,9 @@ function _correosPendientesATS(dryRun) {
       return;
     }
     var asunto = "[SSOMA] ATS y Charlas pendientes de aprobar — " + areaKey + " (" + regs.length + ") · " + hoyTxt;
-    var html   = _htmlCorreoArea(areaKey, regs, hoyTxt);
     if (dryRun) {
       Logger.log("→ ÁREA «" + areaKey + "» a [" + destinos.join(", ") + "] · " + regs.length + " pendientes");
-    } else {
-      MailApp.sendEmail({ to: destinos.join(","), subject: asunto, htmlBody: html, name: CFG_CORREO_ATS.REMITENTE });
+    } else if (_enviar(destinos, asunto, _htmlCorreoArea(areaKey, regs, hoyTxt), resumen)) {
       resumen.correosEnviados++;
     }
     resumen.areasEnviadas++;
@@ -135,17 +152,43 @@ function _correosPendientesATS(dryRun) {
   // ── 2) Resumen consolidado al EQUIPO SSOMA ───────────────────
   if (ssoma.length && (pendientes.length > 0 || CFG_CORREO_ATS.ENVIAR_SSOMA_SI_VACIO)) {
     var asuntoS = "[SSOMA] Resumen diario — ATS y Charlas pendientes de aprobar (" + pendientes.length + ") · " + hoyTxt;
-    var htmlS   = _htmlCorreoSSOMA(grupos, roster, hoyTxt, resumen.sinDestinatario);
     if (dryRun) {
       Logger.log("→ SSOMA a [" + ssoma.join(", ") + "] · total " + pendientes.length + " pendientes");
-    } else {
-      MailApp.sendEmail({ to: ssoma.join(","), subject: asuntoS, htmlBody: htmlS, name: CFG_CORREO_ATS.REMITENTE });
+    } else if (_enviar(ssoma, asuntoS, _htmlCorreoSSOMA(grupos, roster, hoyTxt, resumen.sinDestinatario), resumen)) {
       resumen.correosEnviados++;
     }
   }
 
+  if (!dryRun) _registrarEnvio(resumen);
   Logger.log((dryRun ? "[PREVIEW] " : "[ENVIADO] ") + JSON.stringify(resumen));
   return resumen;
+}
+
+// Envío con captura de error por-correo: un destinatario inválido NO frena el resto
+// (p. ej. el resumen a SSOMA sale aunque falle el correo de un área).
+function _enviar(destinos, asunto, html, resumen) {
+  try {
+    MailApp.sendEmail({ to: destinos.join(","), subject: asunto, htmlBody: html, name: CFG_CORREO_ATS.REMITENTE });
+    return true;
+  } catch (err) {
+    var msg = "Fallo al enviar «" + asunto + "» a [" + destinos.join(", ") + "]: " + (err && err.message || err);
+    resumen.errores.push(msg);
+    Logger.log("⚠ " + msg);
+    return false;
+  }
+}
+
+// Avisa (no bloquea) si la cuota diaria de Gmail no cubre los correos a enviar.
+function _verificarCuota(porEnviar, resumen) {
+  try {
+    var quedan = MailApp.getRemainingDailyQuota();
+    if (porEnviar > quedan) {
+      var msg = "Cuota de correo insuficiente: se necesitan " + porEnviar + " y quedan " + quedan +
+                " hoy. Algunos correos podrían no enviarse.";
+      resumen.errores.push(msg);
+      Logger.log("⚠ " + msg);
+    }
+  } catch (e) { /* getRemainingDailyQuota no disponible: seguir igual */ }
 }
 
 
@@ -359,9 +402,12 @@ function _chips(pares) {
   return s + '</div>';
 }
 
-// Tabla de registros pendientes.
+// Tabla de registros pendientes. Respeta MAX_FILAS (con nota de desborde) y DIAS_ALERTA.
 function _tablaRegistros(regs) {
   var c = CFG_CORREO_ATS;
+  var tope = Math.max(1, c.MAX_FILAS || 80);
+  var ocultas = Math.max(0, regs.length - tope);
+  var visibles = ocultas ? regs.slice(0, tope) : regs;
   var th = 'padding:9px 10px;text-align:left;font-size:12px;color:#fff;font-weight:600;white-space:nowrap;';
   var td = 'padding:9px 10px;font-size:13px;color:#0f172a;border-bottom:1px solid #eef2f7;vertical-align:top;';
   var head =
@@ -374,12 +420,12 @@ function _tablaRegistros(regs) {
     '<th style="' + th + '">Arch.</th>' +
     '<th style="' + th + '">Días</th>' +
     '<th style="' + th + '">Evidencia</th>';
-  var rows = regs.map(function (r) {
+  var rows = visibles.map(function (r) {
     var tipoColor = r.tipo === "ATS" ? c.COLOR_NAVY : c.COLOR_CELESTE;
     var link = r.carpeta
       ? '<a href="' + _esc(r.carpeta) + '" style="color:' + c.COLOR_CELESTE + ';text-decoration:none;font-weight:600;">Abrir ▸</a>'
       : '<span style="color:#94a3b8;">—</span>';
-    var diasBadge = r.dias >= 3
+    var diasBadge = r.dias >= (c.DIAS_ALERTA || 3)
       ? '<span style="background:#fef2f2;color:#b91c1c;border-radius:6px;padding:2px 8px;font-weight:600;">' + r.dias + '</span>'
       : String(r.dias);
     return '<tr>' +
@@ -394,11 +440,16 @@ function _tablaRegistros(regs) {
       '<td style="' + td + '">' + link + '</td>' +
     '</tr>';
   }).join("");
+  var masNota = ocultas
+    ? '<p style="margin:6px 0 0;font-size:12px;color:#64748b;">… y ' + ocultas +
+      ' registro' + (ocultas === 1 ? '' : 's') + ' más pendiente' + (ocultas === 1 ? '' : 's') +
+      ' (se muestran los ' + tope + ' más antiguos). Revisa el resto en el panel.</p>'
+    : '';
   return '<div style="overflow-x:auto;margin:8px 0 4px;">' +
     '<table style="border-collapse:collapse;width:100%;min-width:560px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">' +
       '<thead><tr style="background:' + c.COLOR_NAVY + ';">' + head + '</tr></thead>' +
       '<tbody>' + rows + '</tbody>' +
-    '</table></div>';
+    '</table></div>' + masNota;
 }
 
 
@@ -444,4 +495,30 @@ function _fechaLarga(d) {
   try {
     return Utilities.formatDate(d, Session.getScriptTimeZone(), "EEEE d 'de' MMMM 'de' yyyy");
   } catch (e) { return _fechaISO(d); }
+}
+
+// Auditoría: agrega una fila por corrida en la pestaña HOJA_LOG_ENVIOS del mismo
+// libro de "Registros" (no toca los datos de ATS/Charla). Best-effort: si falla,
+// no interrumpe el envío. Se desactiva con CFG_CORREO_ATS.REGISTRAR_ENVIOS = false.
+function _registrarEnvio(resumen) {
+  if (!CFG_CORREO_ATS.REGISTRAR_ENVIOS || !CFG_CORREO_ATS.LOG_SHEET_ID) return;
+  try {
+    var ss = SpreadsheetApp.openById(CFG_CORREO_ATS.LOG_SHEET_ID);
+    var sh = ss.getSheetByName(CFG_CORREO_ATS.HOJA_LOG_ENVIOS);
+    if (!sh) {
+      sh = ss.insertSheet(CFG_CORREO_ATS.HOJA_LOG_ENVIOS);
+      sh.appendRow(["Ejecutado", "Total pendientes", "Áreas notificadas", "Correos enviados",
+                    "Áreas sin destinatario", "Errores"]);
+    }
+    sh.appendRow([
+      new Date(),
+      resumen.totalPendientes,
+      resumen.areasEnviadas,
+      resumen.correosEnviados,
+      (resumen.sinDestinatario || []).join(" · "),
+      (resumen.errores || []).join(" · ")
+    ]);
+  } catch (e) {
+    Logger.log("⚠ No se pudo registrar el envío en la hoja de auditoría: " + e);
+  }
 }

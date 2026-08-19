@@ -155,6 +155,20 @@ mapa `OVERRIDE_AREA`. Un área sin jefe con correo no se pierde: aparece igual e
 > Por defecto, un área sin pendientes **no** recibe correo (sin ruido); el resumen a SSOMA sólo se
 > manda cuando hay pendientes, salvo que pongas `ENVIAR_SSOMA_SI_VACIO: true`.
 
+**Robustez (ya incluida):**
+
+- **A prueba de fallos por-correo.** Si un destinatario es inválido o Gmail rechaza un envío, ese
+  correo se salta y **el resto igual sale** (p. ej. el resumen de SSOMA no depende de que ninguna área
+  falle). Los fallos quedan en `resumen.errores` y en el *Registro de ejecución*.
+- **Control de cuota.** Antes de enviar avisa si la cuota diaria de Gmail no cubre los correos del día
+  (consumidor ≈ 100/día; suficiente para las áreas + SSOMA).
+- **Correos acotados.** `MAX_FILAS` (80) evita correos gigantes: muestra los pendientes **más antiguos**
+  y añade «… y N más». `DIAS_ALERTA` (3) resalta en rojo los que llevan demasiados días sin aprobar.
+- **Auditoría.** Con `REGISTRAR_ENVIOS: true` (por defecto) cada corrida agrega una fila a la pestaña
+  **`Correos enviados`** del mismo libro de `Registros`: fecha, total pendientes, áreas notificadas,
+  correos enviados, áreas sin destinatario y errores. No toca los datos de ATS/Charla; ponlo en `false`
+  para desactivarlo.
+
 ## Cómo funcionan las integraciones
 
 - **Drive (carpetas fechadas):** al subir evidencia de un levantamiento, el backend la guarda en
