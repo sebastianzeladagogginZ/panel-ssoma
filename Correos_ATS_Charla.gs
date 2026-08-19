@@ -44,6 +44,16 @@ var CFG_CORREO_ATS = {
   LOG_SHEET_ID:   "1ptmnCGfCHZX5RvWSg0cOczbKzYxNgsDooF_BbVg04fc",
   LOG_SHEET_NAME: "Registros",
 
+  // Hoja con la pestaña "Jefes" (roster de destinatarios). Es el libro
+  // "SEG-F-010 Respuestas 2026". Se lee POR ID para no depender de que el
+  // proyecto Apps Script esté enlazado a esa hoja (si el proyecto es standalone
+  // o está enlazado a otra hoja, getActiveSpreadsheet() no la encuentra).
+  //   → Pega aquí el ID que aparece en la URL de esa hoja, entre /d/ y /edit:
+  //     docs.google.com/spreadsheets/d/«ESTE_ES_EL_ID»/edit
+  //   Déjalo vacío para usar la hoja activa (solo si el proyecto está enlazado a ella).
+  JEFES_SHEET_ID: "",
+  HOJA_JEFES:     "Jefes",
+
   // Estado que se considera «pendiente de aprobar» en la columna "Estado".
   ESTADO_PENDIENTE: "Pendiente",
 
@@ -269,14 +279,52 @@ function _tipoCorto(t) {
 //  DESTINATARIOS — hoja "Jefes" (con respaldo a CFG.ROSTER_FALLBACK)
 // ============================================================
 function _rosterDestinatarios() {
-  var jefes = [];
-  try { jefes = (_obtenerJefes() || {}).jefes || []; } catch (e) { jefes = []; }
-  if (!jefes.length) jefes = CFG_CORREO_ATS.ROSTER_FALLBACK || [];
+  var jefes = _leerJefes();
   // Normaliza a {area,nombre,correo,rol} y descarta filas sin correo válido.
   return jefes.map(function (j) {
     return { area: String(j.area || "").trim(), nombre: String(j.nombre || "").trim(),
              correo: String(j.correo || "").trim(), rol: String(j.rol || "").trim() };
   }).filter(function (j) { return _emailValido(j.correo); });
+}
+
+// Lee el roster "Jefes" de forma robusta, en este orden:
+//   1) Por ID explícito (CFG.JEFES_SHEET_ID) → no depende del enlace del proyecto.
+//   2) Hoja ACTIVA (si el proyecto está enlazado a la hoja que tiene la pestaña Jefes).
+//   3) CFG.ROSTER_FALLBACK.
+function _leerJefes() {
+  if (CFG_CORREO_ATS.JEFES_SHEET_ID) {
+    try {
+      var sh = SpreadsheetApp.openById(CFG_CORREO_ATS.JEFES_SHEET_ID)
+                             .getSheetByName(CFG_CORREO_ATS.HOJA_JEFES);
+      var r = _parseJefes(sh);
+      if (r.length) return r;
+      Logger.log("⚠ La pestaña «" + CFG_CORREO_ATS.HOJA_JEFES + "» (por ID) está vacía o no existe.");
+    } catch (e) {
+      Logger.log("⚠ No se pudo leer Jefes por ID (" + CFG_CORREO_ATS.JEFES_SHEET_ID + "): " + e);
+    }
+  }
+  try {
+    var jefes = (_obtenerJefes() || {}).jefes || [];   // hoja activa (Panel_Backend.gs)
+    if (jefes.length) return jefes;
+  } catch (e2) {}
+  return CFG_CORREO_ATS.ROSTER_FALLBACK || [];
+}
+
+// Convierte la pestaña "Jefes" (area | nombre | dni | correo | rol) en objetos.
+function _parseJefes(sh) {
+  if (!sh) return [];
+  var d = sh.getDataRange().getValues(), out = [];
+  for (var i = 1; i < d.length; i++) {
+    if (!d[i][1]) continue;                              // sin nombre → fila vacía
+    out.push({
+      area:   String(d[i][0] || "").trim(),
+      nombre: String(d[i][1] || "").trim(),
+      dni:    String(d[i][2] || "").trim(),
+      correo: String(d[i][3] || "").trim(),
+      rol:    String(d[i][4] || "").trim()
+    });
+  }
+  return out;
 }
 
 // Equipo SSOMA = jefes con area "*" o rol que contenga "ssoma", + EXTRA_SSOMA.
