@@ -145,10 +145,17 @@ el mapa `OVERRIDE_AREA`. Un área sin jefe con correo no se pierde: aparece igua
 > jefe real (**0 huérfanas**) y el equipo SSOMA resuelve a las filas con `area = *`. **No se necesita
 > ningún `OVERRIDE_AREA`.** Las áreas con Jefe de Área *y* Jefe de División reciben a ambos.
 
+**Roster sin configurar nada.** La pestaña `Jefes` se lee en este orden: (1) por `JEFES_SHEET_ID` si lo
+pones; (2) si está vacío, **se busca la hoja por nombre** (`JEFES_SHEET_FILENAME`, por defecto
+`"SEG-F-010 Respuestas 2026"`) en el Drive de la cuenta que ejecuta el script → **no hace falta pegar
+ningún ID**; (3) el roster del backend (`_rosterJefes`/`_obtenerJefes`) si existe; (4) `ROSTER_FALLBACK`.
+Como el proyecto puede ser *standalone*, `getActiveSpreadsheet()` no basta; por eso la búsqueda por ID o
+por nombre es la vía confiable.
+
 **Puesta en marcha (una sola vez, desde el editor de Apps Script):**
 
-1. Revisa el bloque **`CFG_CORREO_ATS`** (sobre todo `LOG_SHEET_ID`; y si hace falta `EXTRA_SSOMA`,
-   `OVERRIDE_AREA`, `PANEL_URL`).
+1. Revisa el bloque **`CFG_CORREO_ATS`** (`LOG_SHEET_ID`; el roster se autodetecta por nombre, pero
+   puedes fijar `JEFES_SHEET_ID`; y si hace falta `EXTRA_SSOMA`, `OVERRIDE_AREA`, `PANEL_URL`).
 2. Ejecuta **`previewCorreosPendientesATS()`** → **no envía**; escribe en el *Registro de ejecución* a
    quién le llegaría cada correo. Autoriza los permisos de Gmail/Hojas cuando lo pida.
 3. *(Opcional)* **`enviarCorreosPendientesATSAhora()`** para una prueba real inmediata.

@@ -54,6 +54,12 @@ var CFG_CORREO_ATS = {
   JEFES_SHEET_ID: "",
   HOJA_JEFES:     "Jefes",
 
+  // Si JEFES_SHEET_ID queda vacío, el script BUSCA la hoja por NOMBRE en el Drive
+  // de la cuenta que lo ejecuta (ssomaoni posee "SEG-F-010 Respuestas 2026").
+  // Así NO hay que pegar ningún ID: cero configuración. Cambia el nombre aquí si
+  // tu libro se llama distinto.
+  JEFES_SHEET_FILENAME: "SEG-F-010 Respuestas 2026",
+
   // Estado que se considera «pendiente de aprobar» en la columna "Estado".
   ESTADO_PENDIENTE: "Pendiente",
 
@@ -303,6 +309,32 @@ function _leerJefes() {
       Logger.log("⚠ No se pudo leer Jefes por ID (" + CFG_CORREO_ATS.JEFES_SHEET_ID + "): " + e);
     }
   }
+
+  // 1b) Sin ID → BUSCA la hoja por NOMBRE en el Drive de la cuenta que ejecuta el
+  //     script (ssomaoni posee "SEG-F-010 Respuestas 2026"). Cero configuración.
+  if (CFG_CORREO_ATS.JEFES_SHEET_FILENAME) {
+    try {
+      var it = DriveApp.getFilesByName(CFG_CORREO_ATS.JEFES_SHEET_FILENAME);
+      while (it.hasNext()) {
+        var f = it.next();
+        if (f.isTrashed && f.isTrashed()) continue;               // ignora papelera
+        try {
+          var shN = SpreadsheetApp.openById(f.getId()).getSheetByName(CFG_CORREO_ATS.HOJA_JEFES);
+          var rN = _parseJefes(shN);
+          if (rN.length) {
+            Logger.log("✔ Roster «Jefes» hallado por nombre en «" + CFG_CORREO_ATS.JEFES_SHEET_FILENAME +
+                       "» (id " + f.getId() + "): " + rN.length + " filas.");
+            return rN;
+          }
+        } catch (eOpen) { /* archivo con ese nombre que no es la hoja correcta: seguir */ }
+      }
+      Logger.log("⚠ No se encontró una hoja «" + CFG_CORREO_ATS.JEFES_SHEET_FILENAME +
+                 "» con pestaña «" + CFG_CORREO_ATS.HOJA_JEFES + "» y filas.");
+    } catch (eDrive) {
+      Logger.log("⚠ Búsqueda de Jefes por nombre falló (¿permiso de Drive?): " + eDrive);
+    }
+  }
+
   // 2) Reutiliza el roster del backend del panel SI existe, sea cual sea su nombre
   //    (_rosterJefes en unas versiones, _obtenerJefes en otras). Guardado con typeof
   //    para no romper si la función no está definida en este proyecto. Best-effort:
